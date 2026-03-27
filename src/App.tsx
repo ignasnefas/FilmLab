@@ -93,6 +93,8 @@ export default function App() {
   const [splitView, setSplitView] = useState(false);
   const [splitPos, setSplitPos] = useState(50);
   const [draggingSplit, setDraggingSplit] = useState(false);
+  const [frameColor, setFrameColor] = useState<'none' | 'white' | 'black'>('none');
+  const [frameThickness, setFrameThickness] = useState(8); // percentage of container
   const [grainSeed, setGrainSeed] = useState(42);
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [processTime, setProcessTime] = useState(0);
@@ -145,6 +147,9 @@ export default function App() {
     fadedBlacksOverride: fadedBlacks ?? undefined,
     exposureCompensation: exposure,
   }), [grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure]);
+
+  const frameBackground = frameColor === 'white' ? '#ffffff' : frameColor === 'black' ? '#000000' : 'transparent';
+  const framePadding = frameColor !== 'none' ? `${frameThickness}%` : '0';
 
   // Optimized processing with adaptive debounce
   useEffect(() => {
@@ -500,6 +505,40 @@ export default function App() {
                 defaultValue={selectedPreset.halation} onChange={setHalationAmount} format={v => `${(v * 100).toFixed(0)}%`} />
             </div>
 
+            {/* Frame Section */}
+            <div className="px-3 pt-1 pb-1">
+              <SectionHeader title="Frame" />
+            </div>
+            <div className="px-3 pb-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                {['none', 'white', 'black'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setFrameColor(color as 'none' | 'white' | 'black')}
+                    className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wide transition ${
+                      frameColor === color
+                        ? 'bg-amber-500 text-black'
+                        : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    }`}
+                  >
+                    {color}
+                  </button>
+                ))}
+              </div>
+              {frameColor !== 'none' && (
+                <SliderControl
+                  label="Frame Thickeness"
+                  value={frameThickness}
+                  min={0}
+                  max={20}
+                  step={1}
+                  defaultValue={8}
+                  onChange={(v) => setFrameThickness(v ?? 0)}
+                  format={(v) => `${Math.round(v)}%`}
+                />
+              )}
+            </div>
+
             {/* Reset */}
             {hasOverrides && (
               <div className="px-3 pb-3">
@@ -585,7 +624,10 @@ export default function App() {
               onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
               onTouchEnd={() => setDraggingSplit(false)}
             >
-              <div className="relative inline-block max-w-full max-h-full">
+              <div
+                className="relative inline-block max-w-full max-h-full"
+                style={{ backgroundColor: frameBackground, padding: framePadding }}
+              >
                 <canvas
                   ref={originalCanvasRef}
                   className="max-w-full max-h-[calc(100vh-52px)] object-contain block"
@@ -631,14 +673,19 @@ export default function App() {
               onTouchEnd={() => setShowOriginal(false)}
               onTouchCancel={() => setShowOriginal(false)}
             >
-              <canvas
-                ref={canvasRef}
-                className={`max-w-full max-h-[calc(100vh-52px)] object-contain shadow-2xl transition-opacity duration-150 ${
-                  showOriginal ? 'opacity-0' : 'opacity-100'
-                }`}
-                style={{ imageRendering: 'auto' }}
-              />
-              {showOriginal && imageData && <OriginalOverlay imageData={imageData} />}
+              <div
+                className="relative flex items-center justify-center max-w-full max-h-full"
+                style={{ backgroundColor: frameBackground, padding: framePadding }}
+              >
+                <canvas
+                  ref={canvasRef}
+                  className={`max-w-full max-h-[calc(100vh-52px)] object-contain shadow-2xl transition-opacity duration-150 ${
+                    showOriginal ? 'opacity-0' : 'opacity-100'
+                  }`}
+                  style={{ imageRendering: 'auto' }}
+                />
+                {showOriginal && imageData && <OriginalOverlay imageData={imageData} />}
+              </div>
             </div>
           )}
 
