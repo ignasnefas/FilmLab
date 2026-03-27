@@ -265,27 +265,22 @@ export function processImage(
     applyColorShift(output, colorShiftX, colorShiftY, width, height);
   }
 
-  // 8. Lens distortion (barrel/pincushion)
-  if (lensDistortion !== 0) {
-    return applyLensDistortion(output, lensDistortion);
-  }
-
-  // 9. Halation (light bleed around bright areas - CineStill signature)
+  // 8. Halation (light bleed around bright areas - CineStill signature)
   if (halationAmount > 0) {
     applyHalation(output, halationAmount, width, height);
   }
 
-  // 10. Vignette - optimized with LUT
+  // 9. Vignette - optimized with LUT
   if (vignetteAmount > 0) {
     applyVignetteLUT(output, vignetteAmount, width, height);
   }
 
-  // 11. Purple fringing (chromatic aberration)
+  // 10. Purple fringing (chromatic aberration)
   if (purpleFringing > 0) {
     applyPurpleFringing(output, purpleFringing, width, height);
   }
 
-  // 12. Film grain
+  // 11. Film grain
   if (grainAmount > 0) {
     const isBW = preset.type === 'bw-negative';
     const [grR, grG, grB] = generateGrainChannels(width, height, {
@@ -296,6 +291,11 @@ export function processImage(
       monochrome: isBW ? true : undefined,
     });
     applyGrain(output, grR, grG, grB, 1.0);
+  }
+
+  // 12. Lens distortion (barrel/pincushion)
+  if (lensDistortion !== 0) {
+    return applyLensDistortion(output, lensDistortion);
   }
 
   return output;
@@ -431,6 +431,8 @@ function applyPurpleFringing(imageData: ImageData, amount: number, width: number
 // Lens distortion: barrel (positive) or pincushion (negative) distortion
 // Automatically crops to avoid black edges
 function applyLensDistortion(imageData: ImageData, amount: number): ImageData {
+  if (amount <= 0) return imageData;
+
   const width = imageData.width;
   const height = imageData.height;
   const data = imageData.data;
@@ -440,30 +442,52 @@ function applyLensDistortion(imageData: ImageData, amount: number): ImageData {
   const maxRadius = Math.sqrt(cx * cx + cy * cy);
   const distortionStrength = amount * 0.5;
 
+  const invertRadius = (rDist: number): number => {
+    if (distortionStrength === 0) return rDist;
+
+    // Solve rSrc * (1 + k * rSrc^2) = rDist via Newton iteration
+    let rSrc = rDist;
+    for (let i = 0; i < 6; i++) {
+      const f = rSrc * (1 + distortionStrength * rSrc * rSrc) - rDist;
+      const df = 1 + 3 * distortionStrength * rSrc * rSrc;
+      if (df === 0) break;
+      const delta = f / df;
+      rSrc -= delta;
+      if (Math.abs(delta) < 1e-6) break;
+    }
+
+    return Math.max(0, rSrc);
+  };
+
+  const mapToSource = (x: number, y: number) => {
+    const dx = x - cx;
+    const dy = y - cy;
+    const r = Math.sqrt(dx * dx + dy * dy);
+
+    if (r === 0) {
+      return { sx: x, sy: y };
+    }
+
+    const rNorm = r / maxRadius;
+    const rSrcNorm = invertRadius(rNorm);
+    const scale = rSrcNorm / rNorm;
+    return {
+      sx: cx + dx * scale,
+      sy: cy + dy * scale,
+    };
+  };
+
   // First pass: find valid bounds (where we have source data)
-  let minX = width, maxX = 0, minY = height, maxY = 0;
+  let minX = width;
+  let maxX = 0;
+  let minY = height;
+  let maxY = 0;
   let hasValidData = false;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const nx = (x - cx) / maxRadius;
-      const ny = (y - cy) / maxRadius;
-      const radius = Math.sqrt(nx * nx + ny * ny);
-
-      const distortedRadius = radius * (1 + distortionStrength * radius * radius);
-      let srcX: number, srcY: number;
-
-      if (radius > 0) {
-        const scale = distortedRadius / radius;
-        srcX = cx + nx * maxRadius * scale;
-        srcY = cy + ny * maxRadius * scale;
-      } else {
-        srcX = x;
-        srcY = y;
-      }
-
-      // Check if source is within bounds
-      if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+      const { sx, sy } = mapToSource(x, y);
+      if (sx >= 0 && sx < width && sy >= 0 && sy < height) {
         minX = Math.min(minX, x);
         maxX = Math.max(maxX, x);
         minY = Math.min(minY, y);
@@ -489,67 +513,45 @@ function applyLensDistortion(imageData: ImageData, amount: number): ImageData {
   const output = new ImageData(new Uint8ClampedArray(newWidth * newHeight * 4), newWidth, newHeight);
   const outData = output.data;
 
-  // Second pass: sample with crop and scale
+  // Second pass: sample with crop and scale, and bilinearly interpolate
   for (let outY = 0; outY < newHeight; outY++) {
     for (let outX = 0; outX < newWidth; outX++) {
-      // Map output to cropped region
       const srcCropX = outX / scale + minX;
       const srcCropY = outY / scale + minY;
+      const { sx, sy } = mapToSource(srcCropX, srcCropY);
 
-      // Get source coordinates after distortion
-      const nx = (srcCropX - cx) / maxRadius;
-      const ny = (srcCropY - cy) / maxRadius;
-      const radius = Math.sqrt(nx * nx + ny * ny);
+      const sampleX = Math.max(0, Math.min(width - 1, sx));
+      const sampleY = Math.max(0, Math.min(height - 1, sy));
 
-      const distortedRadius = radius * (1 + distortionStrength * radius * radius);
-      let sampleX: number, sampleY: number;
-
-      if (radius > 0) {
-        const sampleScale = distortedRadius / radius;
-        sampleX = cx + nx * maxRadius * sampleScale;
-        sampleY = cy + ny * maxRadius * sampleScale;
-      } else {
-        sampleX = srcCropX;
-        sampleY = srcCropY;
-      }
-
-      // Bilinear interpolation
       const x0 = Math.floor(sampleX);
       const y0 = Math.floor(sampleY);
       const x1 = Math.min(x0 + 1, width - 1);
       const y1 = Math.min(y0 + 1, height - 1);
 
-      if (sampleX >= 0 && sampleX < width && sampleY >= 0 && sampleY < height) {
-        const fx = sampleX - x0;
-        const fy = sampleY - y0;
+      const fx = sampleX - x0;
+      const fy = sampleY - y0;
+      const outIdx = (outY * newWidth + outX) * 4;
 
-        const outIdx = (outY * newWidth + outX) * 4;
+      for (let c = 0; c < 4; c++) {
+        const idx00 = (y0 * width + x0) * 4 + c;
+        const idx10 = (y0 * width + x1) * 4 + c;
+        const idx01 = (y1 * width + x0) * 4 + c;
+        const idx11 = (y1 * width + x1) * 4 + c;
 
-        for (let c = 0; c < 4; c++) {
-          const idx00 = (y0 * width + x0) * 4 + c;
-          const idx10 = (y0 * width + x1) * 4 + c;
-          const idx01 = (y1 * width + x0) * 4 + c;
-          const idx11 = (y1 * width + x1) * 4 + c;
+        const v00 = data[idx00];
+        const v10 = data[idx10];
+        const v01 = data[idx01];
+        const v11 = data[idx11];
 
-          const v00 = data[idx00];
-          const v10 = data[idx10];
-          const v01 = data[idx01];
-          const v11 = data[idx11];
+        const v0 = v00 * (1 - fx) + v10 * fx;
+        const v1 = v01 * (1 - fx) + v11 * fx;
+        const v = v0 * (1 - fy) + v1 * fy;
 
-          const v0 = v00 * (1 - fx) + v10 * fx;
-          const v1 = v01 * (1 - fx) + v11 * fx;
-          const v = v0 * (1 - fy) + v1 * fy;
-
-          outData[outIdx + c] = Math.round(v);
-        }
-      } else {
-        // Out of bounds - transparent
-        const outIdx = (outY * newWidth + outX) * 4;
-        outData[outIdx] = 0;
-        outData[outIdx + 1] = 0;
-        outData[outIdx + 2] = 0;
-        outData[outIdx + 3] = 255;
+        outData[outIdx + c] = Math.round(v);
       }
+
+      // Preserve alpha as fully opaque
+      outData[outIdx + 3] = 255;
     }
   }
 

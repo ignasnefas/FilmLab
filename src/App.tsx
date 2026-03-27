@@ -602,7 +602,7 @@ export default function App() {
             <div className="px-3 pb-3 space-y-1.5">
               <SliderControl label="Purple Fringing" value={eff.purpleFringing} min={0} max={1} step={0.01}
                 defaultValue={selectedPreset.purpleFringing} onChange={setPurpleFringing} format={v => `${(v * 100).toFixed(0)}%`} />
-              <SliderControl label="Lens Distortion" value={eff.lensDistortion} min={-0.5} max={0.5} step={0.01}
+              <SliderControl label="Lens Distortion" value={eff.lensDistortion} min={0} max={0.5} step={0.01}
                 defaultValue={selectedPreset.lensDistortion} onChange={setLensDistortion} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} />
               <SliderControl label="Color Shift X" value={eff.colorShiftX} min={-1} max={1} step={0.05}
                 defaultValue={selectedPreset.colorShiftX} onChange={setColorShiftX} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} />
