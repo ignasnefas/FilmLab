@@ -64,6 +64,18 @@ const DEMO_IMAGES = [
   { label: 'Still Life', url: 'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?w=1200&q=80' },
 ];
 
+const MenuIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+const ChevronLeftIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
 export default function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
@@ -77,6 +89,7 @@ export default function App() {
   const [grainSeed, setGrainSeed] = useState(42);
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [processTime, setProcessTime] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
 
   // Override params
   const [grainAmount, setGrainAmount] = useState<number | null>(null);
@@ -275,6 +288,13 @@ export default function App() {
       <header className="border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-xl z-50 shrink-0">
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="md:hidden p-1.5 rounded-lg hover:bg-zinc-800/50 transition-colors text-zinc-400 hover:text-zinc-200"
+              title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            >
+              {sidebarOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+            </button>
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 flex items-center justify-center text-sm font-black text-white shadow-lg shadow-amber-500/20">
               F
             </div>
@@ -324,7 +344,11 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* ─── Sidebar ─── */}
-        <aside className="w-[310px] min-w-[310px] border-r border-zinc-800/50 bg-zinc-900/40 flex flex-col overflow-hidden">
+        <aside className={`${
+          sidebarOpen ? 'w-[310px] min-w-[310px]' : 'w-0 min-w-0'
+        } md:w-[310px] md:min-w-[310px] border-r border-zinc-800/50 bg-zinc-900/40 flex flex-col overflow-hidden transition-all duration-200 ${
+          sidebarOpen ? 'md:relative fixed md:static inset-0 right-auto z-40' : ''
+        }`}>
           {/* Type Filter */}
           <div className="px-3 pt-3 pb-2 border-b border-zinc-800/40">
             <div className="flex items-center gap-1">
@@ -351,7 +375,11 @@ export default function App() {
               return (
                 <button
                   key={preset.id}
-                  onClick={() => setSelectedPreset(preset)}
+                  onClick={() => {
+                    setSelectedPreset(preset);
+                    // Close sidebar on mobile after selection
+                    if (window.innerWidth < 768) setSidebarOpen(false);
+                  }}
                   className={`w-full text-left px-3 py-2 rounded-lg transition-all group relative ${
                     isSelected
                       ? 'bg-zinc-800/90 shadow-sm'
@@ -388,7 +416,7 @@ export default function App() {
           </div>
 
           {/* ─── Controls ─── */}
-          <div className="border-t border-zinc-800/50 overflow-y-auto max-h-[55vh] scrollbar-thin">
+          <div className="border-t border-zinc-800/50 flex-1 overflow-y-auto scrollbar-thin">
             {/* Tone Section */}
             <div className="px-3 pt-3 pb-1">
               <SectionHeader title="Tone" />
@@ -450,6 +478,14 @@ export default function App() {
             )}
           </div>
         </aside>
+
+        {/* Mobile overlay when sidebar is open */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
         {/* ─── Main Canvas Area ─── */}
         <main className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-hidden">
