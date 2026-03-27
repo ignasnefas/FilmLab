@@ -99,6 +99,7 @@ export default function App() {
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [processTime, setProcessTime] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Override params
   const [grainAmount, setGrainAmount] = useState<number | null>(null);
@@ -570,6 +571,14 @@ export default function App() {
                 </button>
               </div>
             )}
+            <div className="border-t border-zinc-800/50 px-3 py-3">
+              <button
+                onClick={() => setIsAboutOpen(true)}
+                className="w-full text-center px-3 py-2 rounded-lg bg-zinc-800 text-zinc-100 hover:bg-amber-500 hover:text-zinc-950 transition-all text-sm font-semibold"
+              >
+                About App
+              </button>
+            </div>
           </div>
         </div>
         </aside>
@@ -759,6 +768,43 @@ export default function App() {
             </div>
           )}
         </main>
+
+        {isAboutOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-950 p-6 text-zinc-100 shadow-xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold">About FilmLab</h2>
+                  <p className="mt-2 text-sm text-zinc-400">Quickstart & info</p>
+                </div>
+                <button
+                  onClick={() => setIsAboutOpen(false)}
+                  className="text-zinc-400 hover:text-zinc-100 text-sm font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="mt-4 space-y-3 text-sm leading-relaxed">
+                <p>FilmLab is an in-browser analog film emulator. Upload a photo, pick a preset, and adjust tone, grain, and effects.</p>
+                <ul className="list-disc list-inside space-y-1 text-zinc-300">
+                  <li>Upload or drag & drop an image.</li>
+                  <li>Select film stock on the left.</li>
+                  <li>Use sliders to tweak exposure, contrast, grain, and more.</li>
+                  <li>Use Compare and hold Original for before/after preview.</li>
+                  <li>Export as JPG when ready.</li>
+                </ul>
+                <a
+                  href="https://nefas.tv"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 px-3 py-2 rounded-lg bg-zinc-800 text-zinc-100 hover:bg-amber-500 hover:text-zinc-950 transition-all text-sm font-semibold"
+                >
+                  Author Website
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
