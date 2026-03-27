@@ -622,7 +622,15 @@ export default function App() {
             </div>
           ) : (
             /* Normal View */
-            <div className="relative flex items-center justify-center w-full h-full p-4">
+            <div
+              className="relative flex items-center justify-center w-full h-full p-4"
+              onMouseDown={() => setShowOriginal(true)}
+              onMouseUp={() => setShowOriginal(false)}
+              onMouseLeave={() => setShowOriginal(false)}
+              onTouchStart={() => setShowOriginal(true)}
+              onTouchEnd={() => setShowOriginal(false)}
+              onTouchCancel={() => setShowOriginal(false)}
+            >
               <canvas
                 ref={canvasRef}
                 className={`max-w-full max-h-[calc(100vh-52px)] object-contain shadow-2xl transition-opacity duration-150 ${
