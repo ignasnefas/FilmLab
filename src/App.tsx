@@ -83,6 +83,12 @@ const ChevronLeftIcon = () => (
   </svg>
 );
 
+const ChevronRightIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
 // ─── Overlay / Frame Assets ───────────────────────────────────────────────────
 type OverlayCategory = 'lightleaks' | 'bokeh' | 'textures';
 type BlendMode = 'screen' | 'multiply' | 'overlay' | 'soft-light' | 'normal';
@@ -159,6 +165,11 @@ export default function App() {
   const [processTime, setProcessTime] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.1;
 
   // Overlay / Frame
   const [overlayCategory, setOverlayCategory] = useState<OverlayCategory>('lightleaks');
@@ -189,6 +200,7 @@ export default function App() {
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const splitContainerRef = useRef<HTMLDivElement>(null);
+  const mainAreaRef = useRef<HTMLDivElement>(null);
   const processTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayImgRef = useRef<HTMLImageElement | null>(null);
@@ -345,8 +357,8 @@ export default function App() {
   }, [selectedFrame]);
 
   const loadImage = useCallback((img: HTMLImageElement) => {
-    // Limit size for performance
-    const maxDim = 1600;
+    // Limit size for performance (increased max for local computation)
+    const maxDim = 3200;
     let w = img.width;
     let h = img.height;
     if (w > maxDim || h > maxDim) {
@@ -399,6 +411,26 @@ export default function App() {
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) handleFile(file);
   }, [handleFile]);
+
+  useEffect(() => {
+    const el = mainAreaRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!image) return;
+      e.preventDefault();
+
+      const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev + delta)));
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [image]);
+
+  useEffect(() => {
+    setZoom(1);
+  }, [image]);
 
   const handleDownload = useCallback(() => {
     if (!canvasRef.current) return;
@@ -470,6 +502,48 @@ export default function App() {
     ? filmPresets
     : filmPresets.filter(p => p.type === filterType);
 
+  // Preset navigation handlers
+  const currentPresetIndex = filteredPresets.findIndex(p => p.id === selectedPreset.id);
+  
+  const goToNextPreset = useCallback(() => {
+    if (filteredPresets.length === 0) return;
+    const nextIndex = (currentPresetIndex + 1) % filteredPresets.length;
+    setSelectedPreset(filteredPresets[nextIndex]);
+  }, [filteredPresets, currentPresetIndex]);
+
+  const goToPrevPreset = useCallback(() => {
+    if (filteredPresets.length === 0) return;
+    const prevIndex = (currentPresetIndex - 1 + filteredPresets.length) % filteredPresets.length;
+    setSelectedPreset(filteredPresets[prevIndex]);
+  }, [filteredPresets, currentPresetIndex]);
+
+  // Keyboard navigation for presets
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!image) return; // Only enable when image is loaded
+      
+      // Arrow keys: left/right
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNextPreset();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPrevPreset();
+      }
+      // Bracket keys as alternative: [ and ]
+      else if (e.key === '[' || e.key === '{') {
+        e.preventDefault();
+        goToPrevPreset();
+      } else if (e.key === ']' || e.key === '}') {
+        e.preventDefault();
+        goToNextPreset();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [image, goToNextPreset, goToPrevPreset]);
+
   // Effective values (override or preset default)
   const eff = {
     grainAmount: grainAmount ?? selectedPreset.grainAmount,
@@ -519,7 +593,7 @@ export default function App() {
               F
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight leading-tight">FilmLab</h1>
+              <h1 className="hidden md:block text-base font-bold tracking-tight leading-tight">FilmLab</h1>
               <p className="hidden md:block text-[9px] text-zinc-600 tracking-[0.2em] uppercase leading-tight">Analog Film Emulator</p>
             </div>
           </div>
@@ -556,6 +630,24 @@ export default function App() {
               >
                 <EyeIcon />
                 <span className="hidden md:inline">Hold: Original</span>
+              </button>
+              <div className="w-px h-5 bg-zinc-800 mx-1" />
+              <button
+                onClick={goToPrevPreset}
+                className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
+                title="Previous preset (← or [)"
+              >
+                <ChevronLeftIcon />
+              </button>
+              <div className="hidden sm:block text-[10px] text-zinc-600 px-1 tabular-nums font-medium min-w-[3ch] text-center">
+                {currentPresetIndex + 1}/{filteredPresets.length}
+              </div>
+              <button
+                onClick={goToNextPreset}
+                className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
+                title="Next preset (→ or ])"
+              >
+                <ChevronRightIcon />
               </button>
               <div className="w-px h-5 bg-zinc-800 mx-1" />
               <button
@@ -891,7 +983,10 @@ export default function App() {
         )}
 
         {/* ─── Main Canvas Area ─── */}
-        <main className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-hidden">
+        <main
+          ref={mainAreaRef}
+          className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-hidden"
+        >
           {!image ? (
             /* Upload / Demo area */
             <div className="flex flex-col items-center gap-6 max-w-lg px-6">
@@ -955,6 +1050,7 @@ export default function App() {
             >
               <div
                 className="relative inline-block max-w-full max-h-full"
+                style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
               >
                 <canvas
                   ref={originalCanvasRef}
@@ -1032,7 +1128,7 @@ export default function App() {
                 className="relative flex items-center justify-center max-w-full max-h-full"
                 style={{ backgroundColor: frameBackground, padding: framePadding }}
               >
-                <div className="relative inline-block max-w-full">
+                <div className="relative inline-block max-w-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
                   <canvas
                     ref={canvasRef}
                     className={`block max-w-full max-h-[calc(100vh-52px)] shadow-2xl ${
@@ -1057,7 +1153,7 @@ export default function App() {
                     />
                   )}
                 </div>
-                {showOriginal && imageData && <OriginalOverlay imageData={imageData} />}
+                {showOriginal && imageData && <OriginalOverlay imageData={imageData} zoom={zoom} />}
               </div>
             </div>
           )}
@@ -1102,6 +1198,8 @@ export default function App() {
                   <span className="text-zinc-700 font-mono tabular-nums">{processTime}ms</span>
                 </>
               )}
+              <span className="text-zinc-700">|</span>
+              <span className="text-zinc-600">Zoom {Math.round(zoom * 100)}%</span>
               <span className="text-zinc-700">|</span>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -1208,7 +1306,7 @@ function SliderControl({
   );
 }
 
-function OriginalOverlay({ imageData }: { imageData: ImageData }) {
+function OriginalOverlay({ imageData, zoom }: { imageData: ImageData; zoom: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -1223,6 +1321,7 @@ function OriginalOverlay({ imageData }: { imageData: ImageData }) {
     <canvas
       ref={ref}
       className="absolute inset-0 m-auto max-w-full max-h-[calc(100vh-52px)] object-contain shadow-2xl"
+      style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
     />
   );
 }
