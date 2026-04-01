@@ -605,70 +605,75 @@ export default function App() {
             </div>
           </div>
 
-          {image && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setSplitView((prev) => !prev);
-                  setShowOriginal(false);
-                }}
-                className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 ${
-                  splitView
-                    ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
-                    : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'
-                }`}
-              >
-                <span className="inline-flex items-center justify-center">
-                  <CompareIcon />
-                </span>
-                <span className="hidden md:inline ml-1.5">Compare</span>
-              </button>
-              <button
-                onMouseDown={() => setShowOriginal(true)}
-                onMouseUp={() => setShowOriginal(false)}
-                onMouseLeave={() => setShowOriginal(false)}
-                onTouchStart={() => setShowOriginal(true)}
-                onTouchEnd={() => setShowOriginal(false)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all select-none flex items-center gap-1.5 flex-shrink-0 ${
-                  showOriginal
-                    ? 'bg-zinc-700 text-zinc-200 border-zinc-600'
-                    : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'
-                }`}
-              >
-                <EyeIcon />
-                <span className="hidden md:inline">Hold: Original</span>
-              </button>
-              <div className="w-px h-5 bg-zinc-800 mx-1" />
-              <button
-                onClick={goToPrevPreset}
-                className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
-                title="Previous preset (← or [)"
-              >
-                <ChevronLeftIcon />
-              </button>
-              <div className="hidden sm:block text-[10px] text-zinc-600 px-1 tabular-nums font-medium min-w-[3ch] text-center">
-                {currentPresetIndex + 1}/{filteredPresets.length}
-              </div>
-              <button
-                onClick={goToNextPreset}
-                className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
-                title="Next preset (→ or ])"
-              >
-                <ChevronRightIcon />
-              </button>
-              <div className="w-px h-5 bg-zinc-800 mx-1" />
-              <button
-                onClick={() => setFramingToolOpen(true)}
-                className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
-                title="Open framing tool"
-              >
-                <span className="inline-flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </span>
-                <span className="hidden md:inline ml-1">Frame</span>
-              </button>
+          {/* Toolbar - Always visible */}
+          <div className="flex items-center gap-2">
+            {image && (
+              <>
+                <button
+                  onClick={() => {
+                    setSplitView((prev) => !prev);
+                    setShowOriginal(false);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 ${
+                    splitView
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                      : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'
+                  }`}
+                >
+                  <span className="inline-flex items-center justify-center">
+                    <CompareIcon />
+                  </span>
+                  <span className="hidden md:inline ml-1.5">Compare</span>
+                </button>
+                <button
+                  onMouseDown={() => setShowOriginal(true)}
+                  onMouseUp={() => setShowOriginal(false)}
+                  onMouseLeave={() => setShowOriginal(false)}
+                  onTouchStart={() => setShowOriginal(true)}
+                  onTouchEnd={() => setShowOriginal(false)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all select-none flex items-center gap-1.5 flex-shrink-0 ${
+                    showOriginal
+                      ? 'bg-zinc-700 text-zinc-200 border-zinc-600'
+                      : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'
+                  }`}
+                >
+                  <EyeIcon />
+                  <span className="hidden md:inline">Hold: Original</span>
+                </button>
+                <div className="w-px h-5 bg-zinc-800 mx-1" />
+                <button
+                  onClick={goToPrevPreset}
+                  className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
+                  title="Previous preset (← or [)"
+                >
+                  <ChevronLeftIcon />
+                </button>
+                <div className="hidden sm:block text-[10px] text-zinc-600 px-1 tabular-nums font-medium min-w-[3ch] text-center">
+                  {currentPresetIndex + 1}/{filteredPresets.length}
+                </div>
+                <button
+                  onClick={goToNextPreset}
+                  className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
+                  title="Next preset (→ or ])"
+                >
+                  <ChevronRightIcon />
+                </button>
+                <div className="w-px h-5 bg-zinc-800 mx-1" />
+              </>
+            )}
+            <button
+              onClick={() => setFramingToolOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
+              title="Open framing tool"
+            >
+              <span className="inline-flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <span className="hidden md:inline ml-1">Frame</span>
+            </button>
+            {image && (
               <button
                 onClick={handleDownload}
                 className="px-3 py-1.5 rounded-lg text-xs bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/20 flex-shrink-0 whitespace-nowrap"
@@ -676,8 +681,8 @@ export default function App() {
                 <DownloadIcon />
                 <span className="hidden md:inline ml-1">Export JPG</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
