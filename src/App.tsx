@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { filmPresets, FilmPreset } from './filmPresets';
 import { processImage, ProcessingParams } from './filmProcessor';
+import FramingTool from './FramingTool';
 import logo from './favicon/logo.png';
 
 // ─── Icons ───────────────────────────────────────────────
@@ -178,6 +179,9 @@ export default function App() {
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [overlayBlend, setOverlayBlend] = useState<BlendMode>('screen');
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
+
+  // Framing tool modal state
+  const [framingToolOpen, setFramingToolOpen] = useState(false);
 
   // Override params
   const [grainAmount, setGrainAmount] = useState<number | null>(null);
@@ -441,6 +445,7 @@ export default function App() {
     const ctx = dstCanvas.getContext('2d');
     if (!ctx) return;
 
+    // Apply white/black frame first
     if (frameColor === 'none') {
       dstCanvas.width = sourceCanvas.width;
       dstCanvas.height = sourceCanvas.height;
@@ -652,6 +657,18 @@ export default function App() {
                 <ChevronRightIcon />
               </button>
               <div className="w-px h-5 bg-zinc-800 mx-1" />
+              <button
+                onClick={() => setFramingToolOpen(true)}
+                className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
+                title="Open framing tool"
+              >
+                <span className="inline-flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </span>
+                <span className="hidden md:inline ml-1">Frame</span>
+              </button>
               <button
                 onClick={handleDownload}
                 className="px-3 py-1.5 rounded-lg text-xs bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/20 flex-shrink-0 whitespace-nowrap"
@@ -1246,6 +1263,8 @@ export default function App() {
             </div>
           </div>
         )}
+
+        <FramingTool isOpen={framingToolOpen} onClose={() => setFramingToolOpen(false)} />
       </div>
     </div>
   );
