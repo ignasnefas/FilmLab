@@ -1829,6 +1829,20 @@ export default function App() {
 
           {/* Type Filter */}
           <div className="sticky top-0 z-10 px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
+            <div className="pb-4 border-b border-zinc-800/30">
+              <SectionHeader title="Levels" icon={<LevelsIcon />} />
+              <div className="mt-2">
+                <LevelsHistogram
+                  histogram={levelsHistogram}
+                  inputBlack={eff.levelsInputBlack}
+                  inputWhite={eff.levelsInputWhite}
+                  gamma={eff.levelsGamma}
+                  onInputBlackChange={setLevelsInputBlack}
+                  onInputWhiteChange={setLevelsInputWhite}
+                  onGammaChange={setLevelsGamma}
+                />
+              </div>
+            </div>
             <div className="flex flex-wrap items-center gap-1">
               {(Object.keys(typeLabels) as FilmType[]).map(type => (
                 <button
@@ -1998,20 +2012,6 @@ export default function App() {
           {/* ─── Controls ─── */}
           <div className="border-t border-zinc-800/50">
             <div className="px-3 pt-3 pb-1">
-              <SectionHeader title="Levels" icon={<LevelsIcon />} />
-            </div>
-            <div className="px-3 pb-2">
-              <LevelsHistogram
-                histogram={levelsHistogram}
-                inputBlack={eff.levelsInputBlack}
-                inputWhite={eff.levelsInputWhite}
-                gamma={eff.levelsGamma}
-                onInputBlackChange={setLevelsInputBlack}
-                onInputWhiteChange={setLevelsInputWhite}
-                onGammaChange={setLevelsGamma}
-              />
-            </div>
-            <div className="px-3 pt-1 pb-1">
               <SectionHeader title="Tone" icon={<ToneIcon />} />
             </div>
             <div className="px-3 pb-2 space-y-1.5">
@@ -2857,9 +2857,6 @@ function LevelsHistogram({
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden">
       <div className="px-3 pt-3 pb-2">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-medium text-zinc-300">Histogram</span>
-        </div>
         <div className="relative h-24 rounded-lg overflow-hidden bg-zinc-900">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
