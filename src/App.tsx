@@ -1205,7 +1205,7 @@ export default function App() {
             <img src={logo} alt="FilmLab logo" className="hidden md:block w-8 h-8 rounded-none object-contain" />
             <div>
               <h1 className="hidden md:block text-base font-bold tracking-tight leading-tight">FilmLab</h1>
-              <p className="hidden md:block text-[9px] text-zinc-600 tracking-[0.2em] uppercase leading-tight">Analog Film Emulator</p>
+              <p className="hidden md:block text-[9px] text-zinc-600 tracking-[0.2em] uppercase leading-tight">Film Emulator</p>
             </div>
           </div>
 
@@ -1328,7 +1328,7 @@ export default function App() {
               <img src={logo} alt="FilmLab logo" className="w-8 h-8 object-contain" />
               <div>
                 <h1 className="text-sm font-bold tracking-tight leading-tight">FilmLab</h1>
-                <p className="text-[9px] text-zinc-500 tracking-[0.2em] uppercase leading-tight">Analog Film Emulator</p>
+                <p className="text-[9px] text-zinc-500 tracking-[0.2em] uppercase leading-tight">Film Emulator</p>
               </div>
             </div>
           </div>
