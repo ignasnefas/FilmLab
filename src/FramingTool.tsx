@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { framePresets, frameColors, FramePreset } from './framePresets';
+import { fitRatioIntoBounds, getCanvasSizeForRatio, getCenteredDrawRect } from './canvasUtils';
 
 interface ImageData {
   file: File;
@@ -27,45 +28,35 @@ export default function FramingTool({ isOpen, onClose, initialImage }: FramingTo
 
   const selectedImage = images[selectedIndex];
 
+  const addImages = useCallback((files: FileList) => {
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        setImages((prev) => [
+          ...prev,
+          { file, url, width: img.width, height: img.height },
+        ]);
+      };
+      img.src = url;
+    });
+  }, []);
+
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        setImages((prev) => [
-          ...prev,
-          { file, url, width: img.width, height: img.height },
-        ]);
-      };
-      img.src = url;
-    });
-
+    addImages(files);
     if (e.target) e.target.value = '';
-  }, []);
+  }, [addImages]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const files = e.dataTransfer.files;
-
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        setImages((prev) => [
-          ...prev,
-          { file, url, width: img.width, height: img.height },
-        ]);
-      };
-      img.src = url;
-    });
-  }, []);
+    addImages(files);
+  }, [addImages]);
 
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
@@ -84,20 +75,7 @@ export default function FramingTool({ isOpen, onClose, initialImage }: FramingTo
 
     const img = new Image();
     img.onload = () => {
-      const targetRatio = selectedPreset.ratio;
-      const baseSize = 400;
-
-      let canvasWidth: number;
-      let canvasHeight: number;
-
-      if (targetRatio >= 1) {
-        canvasWidth = baseSize;
-        canvasHeight = baseSize / targetRatio;
-      } else {
-        canvasHeight = baseSize;
-        canvasWidth = baseSize * targetRatio;
-      }
-
+      const { width: canvasWidth, height: canvasHeight } = getCanvasSizeForRatio(selectedPreset.ratio, 400);
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
 
@@ -107,21 +85,7 @@ export default function FramingTool({ isOpen, onClose, initialImage }: FramingTo
       const paddingFactor = 1 - padding / 100;
       const maxWidth = canvasWidth * paddingFactor;
       const maxHeight = canvasHeight * paddingFactor;
-
-      const imageRatio = img.width / img.height;
-      let drawWidth: number;
-      let drawHeight: number;
-
-      if (imageRatio > maxWidth / maxHeight) {
-        drawWidth = maxWidth;
-        drawHeight = maxWidth / imageRatio;
-      } else {
-        drawHeight = maxHeight;
-        drawWidth = maxHeight * imageRatio;
-      }
-
-      const x = (canvasWidth - drawWidth) / 2;
-      const y = (canvasHeight - drawHeight) / 2;
+      const { x, y, width: drawWidth, height: drawHeight } = getCenteredDrawRect(img.width, img.height, maxWidth, maxHeight);
 
       ctx.drawImage(img, x, y, drawWidth, drawHeight);
     };
@@ -149,51 +113,16 @@ export default function FramingTool({ isOpen, onClose, initialImage }: FramingTo
 
     await new Promise<void>((resolve) => {
       image.onload = () => {
-        const sourceWidth = image.width;
-        const sourceHeight = image.height;
-
-        let canvasWidth: number;
-        let canvasHeight: number;
-
-        if (targetRatio >= 1) {
-          canvasWidth = sourceWidth;
-          canvasHeight = canvasWidth / targetRatio;
-          if (canvasHeight > sourceHeight) {
-            canvasHeight = sourceHeight;
-            canvasWidth = canvasHeight * targetRatio;
-          }
-        } else {
-          canvasHeight = sourceHeight;
-          canvasWidth = canvasHeight * targetRatio;
-          if (canvasWidth > sourceWidth) {
-            canvasWidth = sourceWidth;
-            canvasHeight = canvasWidth / targetRatio;
-          }
-        }
-
-        canvas.width = Math.round(canvasWidth);
-        canvas.height = Math.round(canvasHeight);
+        const size = fitRatioIntoBounds(image.width, image.height, targetRatio);
+        canvas.width = Math.round(size.width);
+        canvas.height = Math.round(size.height);
         ctx.fillStyle = frameColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const paddingFactor = 1 - padding / 100;
         const maxWidth = canvas.width * paddingFactor;
         const maxHeight = canvas.height * paddingFactor;
-
-        const imageRatio = sourceWidth / sourceHeight;
-        let drawWidth: number;
-        let drawHeight: number;
-
-        if (imageRatio > maxWidth / maxHeight) {
-          drawWidth = maxWidth;
-          drawHeight = maxWidth / imageRatio;
-        } else {
-          drawHeight = maxHeight;
-          drawWidth = maxHeight * imageRatio;
-        }
-
-        const x = (canvas.width - drawWidth) / 2;
-        const y = (canvas.height - drawHeight) / 2;
+        const { x, y, width: drawWidth, height: drawHeight } = getCenteredDrawRect(image.width, image.height, maxWidth, maxHeight);
 
         ctx.drawImage(image, x, y, drawWidth, drawHeight);
         resolve();

@@ -14,6 +14,7 @@ import {
   rotateImageData,
   cropImageDataRect,
 } from './App.helpers';
+import { getCropAspectRatio, clampCropRect } from './canvasUtils';
 import type {
   BatchImage,
   BatchImageEditState,
@@ -622,13 +623,7 @@ export function useFilmLabState() {
   useEffect(() => {
     if (!imageData || !cropMode) return;
 
-    const targetRatio = cropRatio === 'original'
-      ? imageData.width / imageData.height
-      : cropRatio === '1:1'
-        ? 1
-        : cropRatio === '4:3'
-          ? 4 / 3
-          : 16 / 9;
+    const targetRatio = getCropAspectRatio(cropRatio, imageData.width, imageData.height);
 
     const width = imageData.width;
     const height = imageData.height;
@@ -691,93 +686,7 @@ export function useFilmLabState() {
     const start = cropDragRef.current.startRect;
     if (!start) return;
 
-    const aspectRatio = cropRatio === 'original'
-      ? start.w / start.h
-      : cropRatio === '1:1'
-        ? 1
-        : cropRatio === '4:3'
-          ? 4 / 3
-          : 16 / 9;
-
-    const clampRect = (rect: CropRect) => {
-      let x = rect.x;
-      let y = rect.y;
-      let w = Math.max(minSize, Math.min(rect.w, 1));
-      let h = Math.max(minSize, Math.min(rect.h, 1));
-
-      if (cropRatio !== 'original') {
-        if (type === 'nw') {
-          const right = start.x + start.w;
-          const bottom = start.y + start.h;
-          x = Math.max(0, Math.min(x, right - minSize));
-          y = Math.max(0, Math.min(y, bottom - minSize));
-          w = right - x;
-          h = bottom - y;
-          if (w / h > aspectRatio) {
-            w = h * aspectRatio;
-            x = right - w;
-          } else {
-            h = w / aspectRatio;
-            y = bottom - h;
-          }
-          x = Math.max(0, x);
-          y = Math.max(0, y);
-        } else if (type === 'ne') {
-          const left = start.x;
-          const bottom = start.y + start.h;
-          x = left;
-          y = Math.max(0, Math.min(y, bottom - minSize));
-          h = bottom - y;
-          w = Math.max(minSize, h * aspectRatio);
-          if (x + w > 1) {
-            w = 1 - x;
-            h = w / aspectRatio;
-            y = bottom - h;
-          }
-        } else if (type === 'sw') {
-          const top = start.y;
-          const right = start.x + start.w;
-          y = top;
-          x = Math.max(0, Math.min(x, right - minSize));
-          w = right - x;
-          h = Math.max(minSize, w / aspectRatio);
-          if (y + h > 1) {
-            h = 1 - y;
-            w = h * aspectRatio;
-            x = right - w;
-          }
-        } else if (type === 'se') {
-          x = Math.max(0, Math.min(x, 1 - w));
-          y = Math.max(0, Math.min(y, 1 - h));
-          if (x + w > 1) {
-            w = 1 - x;
-            h = w / aspectRatio;
-          }
-          if (y + h > 1) {
-            h = 1 - y;
-            w = h * aspectRatio;
-          }
-          if (w < minSize) {
-            w = minSize;
-            h = w / aspectRatio;
-          }
-          if (h < minSize) {
-            h = minSize;
-            w = h * aspectRatio;
-          }
-        }
-      } else {
-        x = Math.min(Math.max(0, x), 1 - w);
-        y = Math.min(Math.max(0, y), 1 - h);
-      }
-
-      return {
-        x,
-        y,
-        w: Math.max(minSize, Math.min(w, 1)),
-        h: Math.max(minSize, Math.min(h, 1)),
-      };
-    };
+    const aspectRatio = getCropAspectRatio(cropRatio, start.w, start.h);
 
     let next = { ...start };
     const minSize = 0.05;
@@ -863,7 +772,7 @@ export function useFilmLabState() {
       }
     }
 
-    setCropRect(clampRect(next));
+    setCropRect(clampCropRect(next, minSize));
   }, [draggingCrop, cropRatio, cropRect, canvasBounds]);
 
   const onCropPointerUp = useCallback(() => {
@@ -1247,6 +1156,7 @@ export function useFilmLabState() {
     setActiveBatchIndex,
     setProcessing,
     setSelectedPreset,
+    selectPreset,
     currentParams,
     frameBackground,
     framePadding,

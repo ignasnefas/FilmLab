@@ -1,4 +1,5 @@
 import { FramePreset } from './framePresets';
+import { getCanvasSizeForRatio } from './canvasUtils';
 
 export interface FrameConfig {
   enabled: boolean;
@@ -22,17 +23,7 @@ export function applyFrame(
     img.onload = () => {
       const targetRatio = frameConfig.preset.ratio;
       const baseSize = Math.max(img.width, img.height);
-
-      let frameCanvasWidth: number;
-      let frameCanvasHeight: number;
-
-      if (targetRatio >= 1) {
-        frameCanvasWidth = baseSize;
-        frameCanvasHeight = baseSize / targetRatio;
-      } else {
-        frameCanvasHeight = baseSize;
-        frameCanvasWidth = baseSize * targetRatio;
-      }
+      const { width: frameCanvasWidth, height: frameCanvasHeight } = getCanvasSizeForRatio(targetRatio, baseSize);
 
       const framedCanvas = document.createElement('canvas');
       framedCanvas.width = frameCanvasWidth;
@@ -75,20 +66,10 @@ export function calculateFramedDimensions(
 ): { width: number; height: number } {
   const targetRatio = framePreset.ratio;
   const baseSize = Math.max(originalWidth, originalHeight);
-
-  let frameWidth: number;
-  let frameHeight: number;
-
-  if (targetRatio >= 1) {
-    frameWidth = baseSize;
-    frameHeight = baseSize / targetRatio;
-  } else {
-    frameHeight = baseSize;
-    frameWidth = baseSize * targetRatio;
-  }
+  const { width, height } = getCanvasSizeForRatio(targetRatio, baseSize);
 
   return {
-    width: Math.round(frameWidth),
-    height: Math.round(frameHeight),
+    width: Math.round(width),
+    height: Math.round(height),
   };
 }
