@@ -41,6 +41,12 @@ const ResetIcon = () => (
   </svg>
 );
 
+const StarIcon = ({ filled }: { filled?: boolean }) => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.885a1 1 0 00.95.69h4.084c.969 0 1.371 1.24.588 1.81l-3.305 2.405a1 1 0 00-.364 1.118l1.262 3.885c.3.921-.755 1.688-1.54 1.118l-3.305-2.405a1 1 0 00-1.176 0l-3.305 2.405c-.784.57-1.838-.197-1.539-1.118l1.262-3.885a1 1 0 00-.364-1.118L2.115 9.312c-.783-.57-.38-1.81.588-1.81h4.084a1 1 0 00.95-.69l1.262-3.885z" />
+  </svg>
+);
+
 interface BatchImage {
   id: string;
   file?: File;
@@ -1281,13 +1287,6 @@ export default function App() {
                 >
                   ↷ Redo
                 </button>
-                <button
-                  onClick={() => toggleFavorite(selectedPreset.id)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 flex-shrink-0 ${favorites.includes(selectedPreset.id) ? 'bg-amber-500 text-black border-amber-500/30' : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'}`}
-                  title={favorites.includes(selectedPreset.id) ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  {favorites.includes(selectedPreset.id) ? '★ Favorite' : '☆ Favorite'}
-                </button>
               </>
             )}
             <button
@@ -1442,42 +1441,61 @@ export default function App() {
               {filteredPresets.map(preset => {
                 const isSelected = selectedPreset.id === preset.id;
                 return (
-                  <button
+                  <div
                     key={preset.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => selectPreset(preset)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-all group relative ${
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectPreset(preset);
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-all group relative cursor-pointer ${
                     isSelected
                       ? 'bg-zinc-800/90 shadow-sm'
                       : 'hover:bg-zinc-800/40'
                   }`}
-                >
-                  {isSelected && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-500 rounded-r-full" />
-                  )}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{preset.brand}</span>
-                        {favorites.includes(preset.id) && (
-                          <span className="text-amber-400 text-[10px]">★</span>
-                        )}
+                  >
+                    {isSelected && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-500 rounded-r-full" />
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{preset.brand}</span>
+                          {favorites.includes(preset.id) && (
+                            <span className="text-amber-400 text-[10px]">★</span>
+                          )}
+                        </div>
+                        <h3 className={`text-[13px] font-semibold leading-tight ${
+                          isSelected ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
+                        }`}>
+                          {preset.name}
+                        </h3>
                       </div>
-                      <h3 className={`text-[13px] font-semibold leading-tight ${
-                        isSelected ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
-                      }`}>
-                        {preset.name}
-                      </h3>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(preset.id);
+                          }}
+                          className={`p-1 rounded-md transition-colors ${favorites.includes(preset.id) ? 'bg-amber-500 text-black' : 'bg-zinc-800/70 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'}`}
+                          aria-label={favorites.includes(preset.id) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <StarIcon filled={favorites.includes(preset.id)} />
+                        </button>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors[preset.type]}`}>
+                          {typeBadge[preset.type]}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors[preset.type]}`}>
-                        {typeBadge[preset.type]}
-                      </span>
-                    </div>
+                    {isSelected && (
+                      <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">{preset.description}</p>
+                    )}
                   </div>
-                  {isSelected && (
-                    <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">{preset.description}</p>
-                  )}
-                </button>
               );
             })}
           </div>
