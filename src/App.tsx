@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, useLayoutEffect, type ReactNode } from 'react';
 import { filmPresets, FilmPreset } from './filmPresets';
 import { processImage, ProcessingParams } from './filmProcessor';
 import FramingTool from './FramingTool';
@@ -39,6 +39,98 @@ const ResetIcon = () => (
   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
   </svg>
+);
+
+const SectionIcon = ({ children }: { children: ReactNode }) => (
+  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-zinc-800 text-zinc-400">
+    {children}
+  </span>
+);
+
+const LevelsIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M3 14V6m4 8V8m4 6V4m4 10V10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </SectionIcon>
+);
+
+const ToneIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M10 4V2m0 16v-2m8-6h2M0 10h2m14.14-5.86l1.42-1.42M2.44 17.56l1.42-1.42M17.56 17.56l-1.42-1.42M2.44 2.44l1.42 1.42" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="3" />
+    </svg>
+  </SectionIcon>
+);
+
+const GrainIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="6" cy="6" r="1.5" fill="currentColor" />
+      <circle cx="14" cy="6" r="1.5" fill="currentColor" />
+      <circle cx="10" cy="14" r="1.5" fill="currentColor" />
+    </svg>
+  </SectionIcon>
+);
+
+const EffectsIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M10 3l1.5 4.5L16 9l-4 2L11.5 16 10 12 6 14l2-4-4-2 4.5-.5L10 3z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </SectionIcon>
+);
+
+const OpticalIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.5" />
+    </svg>
+  </SectionIcon>
+);
+
+const OverlayIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <rect x="3" y="3" width="14" height="14" rx="2" />
+      <rect x="6" y="6" width="10" height="10" rx="1" fill="currentColor" opacity="0.15" />
+    </svg>
+  </SectionIcon>
+);
+
+const FrameIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <rect x="4" y="4" width="12" height="12" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 4v4M4 8h4" strokeLinecap="round" />
+    </svg>
+  </SectionIcon>
+);
+
+const CropIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M6 3v4M6 3h4M14 17v-4M14 17h-4M17 6h-4M17 6v4M3 14h4M3 14v-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </SectionIcon>
+);
+
+const PresetIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M4 6h12M4 10h12M4 14h8" strokeLinecap="round" />
+    </svg>
+  </SectionIcon>
+);
+
+const SliderLabelIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="10" cy="10" r="2" />
+    </svg>
+  </span>
 );
 
 const StarIcon = ({ filled }: { filled?: boolean }) => (
@@ -151,11 +243,11 @@ function saveToStorage<T>(key: string, value: T) {
 type FilmType = 'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema';
 
 const typeLabels: Record<FilmType, string> = {
-  all: 'All Films',
-  'color-negative': 'Color Neg',
+  all: 'All',
+  'color-negative': 'Color',
   'bw-negative': 'B&W',
   slide: 'Slide',
-  cinema: 'Cinema',
+  cinema: 'Cine',
 };
 
 const typeColors: Record<string, string> = {
@@ -655,6 +747,7 @@ export default function App() {
     setRedoStack([]);
     setCropMode(false);
     setCropRect(null);
+    setSelectedPreset(filmPresets[0]);
 
     if (originalCanvasRef.current) {
       originalCanvasRef.current.width = w;
@@ -713,6 +806,7 @@ export default function App() {
   }, [getCurrentBatchEditState]);
 
   const handleBatchFiles = useCallback((files: FileList | File[]) => {
+    const useNeutralPreset = batchImages.length === 0;
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
@@ -745,14 +839,17 @@ export default function App() {
             name: file.name,
             data,
             thumbUrl: result,
-            editState: getCurrentBatchEditState(),
+            editState: {
+              ...getCurrentBatchEditState(),
+              selectedPreset: useNeutralPreset ? filmPresets[0] : getCurrentBatchEditState().selectedPreset,
+            },
           });
         };
         img.src = result;
       };
       reader.readAsDataURL(file);
     });
-  }, [addBatchEntry]);
+  }, [addBatchEntry, batchImages.length]);
 
   const handleDemo = useCallback((url: string) => {
     setLoadingDemo(true);
@@ -781,13 +878,16 @@ export default function App() {
         name: 'Sample',
         data,
         thumbUrl: url,
-        editState: getCurrentBatchEditState(),
+        editState: {
+          ...getCurrentBatchEditState(),
+          selectedPreset: batchImages.length === 0 ? filmPresets[0] : getCurrentBatchEditState().selectedPreset,
+        },
       });
       setLoadingDemo(false);
     };
     img.onerror = () => setLoadingDemo(false);
     img.src = url;
-  }, [addBatchEntry]);
+  }, [addBatchEntry, batchImages.length]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -1374,11 +1474,34 @@ export default function App() {
     levelsOutputWhite: levelsOutputWhite ?? selectedPreset.levelsOutputWhite ?? 1,
   };
 
-  const histogramImage = processedImageData ?? imageData;
   const levelsHistogram = useMemo(() => {
-    if (!histogramImage) return null;
+    if (!imageData) return null;
+
+    const histogramSource = processImage(imageData, selectedPreset, {
+      grainAmountOverride: grainAmount ?? undefined,
+      grainSizeOverride: grainSize ?? undefined,
+      grainRoughnessOverride: grainRoughness ?? undefined,
+      vignetteOverride: vignetteAmount ?? undefined,
+      halationOverride: halationAmount ?? undefined,
+      contrastOverride: contrastAmount ?? undefined,
+      saturationOverride: saturationAmount ?? undefined,
+      brightnessOverride: brightnessAmount ?? undefined,
+      fadedBlacksOverride: fadedBlacks ?? undefined,
+      exposureCompensation: exposure,
+      purpleFringingOverride: purpleFringing ?? undefined,
+      lensDistortionOverride: lensDistortion ?? undefined,
+      colorShiftXOverride: colorShiftX ?? undefined,
+      colorShiftYOverride: colorShiftY ?? undefined,
+      whiteBalanceOverride: whiteBalance ?? undefined,
+      levelsInputBlackOverride: selectedPreset.levelsInputBlack ?? 0,
+      levelsInputWhiteOverride: selectedPreset.levelsInputWhite ?? 1,
+      levelsGammaOverride: selectedPreset.levelsGamma ?? 1,
+      levelsOutputBlackOverride: selectedPreset.levelsOutputBlack ?? 0,
+      levelsOutputWhiteOverride: selectedPreset.levelsOutputWhite ?? 1,
+    }, grainSeed);
+
     const bins = new Uint32Array(256);
-    const data = histogramImage.data;
+    const data = histogramSource.data;
     const pixelCount = data.length / 4;
     const sampleStep = Math.max(1, Math.floor(pixelCount / 65536));
     const stepBytes = sampleStep * 4;
@@ -1392,7 +1515,7 @@ export default function App() {
     }
 
     return bins;
-  }, [histogramImage]);
+  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, grainSeed]);
 
   const handleSaveCustomPreset = useCallback(() => {
     const name = customPresetName.trim() || `${selectedPreset.name} Custom`;
@@ -1532,16 +1655,29 @@ export default function App() {
                 <button
                   onClick={handleUndo}
                   disabled={history.length === 0}
-                  className="px-2.5 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Undo"
+                  aria-label="Undo"
+                  className="p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  ↶ Undo
+                  ↶
                 </button>
                 <button
                   onClick={handleRedo}
                   disabled={redoStack.length === 0}
-                  className="px-2.5 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Redo"
+                  aria-label="Redo"
+                  className="p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  ↷ Redo
+                  ↷
+                </button>
+                <button
+                  onClick={resetOverrides}
+                  disabled={!hasOverrides}
+                  title="Reset all adjustments"
+                  className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ResetIcon />
+                  <span className="hidden md:inline ml-1">Reset All</span>
                 </button>
               </>
             )}
@@ -1758,9 +1894,22 @@ export default function App() {
 
           {/* ─── Controls ─── */}
           <div className="border-t border-zinc-800/50">
-            {/* Tone Section */}
             <div className="px-3 pt-3 pb-1">
-              <SectionHeader title="Tone" />
+              <SectionHeader title="Levels" icon={<LevelsIcon />} />
+            </div>
+            <div className="px-3 pb-2">
+              <LevelsHistogram
+                histogram={levelsHistogram}
+                inputBlack={eff.levelsInputBlack}
+                inputWhite={eff.levelsInputWhite}
+                gamma={eff.levelsGamma}
+                onInputBlackChange={setLevelsInputBlack}
+                onInputWhiteChange={setLevelsInputWhite}
+                onGammaChange={setLevelsGamma}
+              />
+            </div>
+            <div className="px-3 pt-1 pb-1">
+              <SectionHeader title="Tone" icon={<ToneIcon />} />
             </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="White Balance" value={eff.whiteBalance} min={-1} max={1} step={0.05}
@@ -1772,34 +1921,6 @@ export default function App() {
               <SliderControl label="Brightness" value={eff.brightness} min={-0.3} max={0.3} step={0.01}
                 defaultValue={selectedPreset.brightness} onChange={setBrightnessAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} />
             </div>
-            <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Levels" />
-            </div>
-            <div className="px-3 pb-2">
-              <LevelsHistogram
-                histogram={levelsHistogram}
-                inputBlack={eff.levelsInputBlack}
-                inputWhite={eff.levelsInputWhite}
-                outputBlack={eff.levelsOutputBlack}
-                outputWhite={eff.levelsOutputWhite}
-                onInputBlackChange={setLevelsInputBlack}
-                onInputWhiteChange={setLevelsInputWhite}
-                onOutputBlackChange={setLevelsOutputBlack}
-                onOutputWhiteChange={setLevelsOutputWhite}
-              />
-            </div>
-            <div className="px-3 pb-2 space-y-1.5">
-              <SliderControl label="Input Black" value={eff.levelsInputBlack} min={0} max={0.4} step={0.01}
-                defaultValue={selectedPreset.levelsInputBlack ?? 0} onChange={setLevelsInputBlack} format={v => `${Math.round(v * 100)}%`} />
-              <SliderControl label="Gamma" value={eff.levelsGamma} min={0.25} max={4} step={0.01}
-                defaultValue={selectedPreset.levelsGamma ?? 1} onChange={setLevelsGamma} format={v => v.toFixed(2)} />
-              <SliderControl label="Input White" value={eff.levelsInputWhite} min={0.6} max={1} step={0.01}
-                defaultValue={selectedPreset.levelsInputWhite ?? 1} onChange={setLevelsInputWhite} format={v => `${Math.round(v * 100)}%`} />
-              <SliderControl label="Output Black" value={eff.levelsOutputBlack} min={0} max={0.4} step={0.01}
-                defaultValue={selectedPreset.levelsOutputBlack ?? 0} onChange={setLevelsOutputBlack} format={v => `${Math.round(v * 100)}%`} />
-              <SliderControl label="Output White" value={eff.levelsOutputWhite} min={0.6} max={1} step={0.01}
-                defaultValue={selectedPreset.levelsOutputWhite ?? 1} onChange={setLevelsOutputWhite} format={v => `${Math.round(v * 100)}%`} />
-            </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="Saturation" value={eff.saturation} min={0} max={2} step={0.01}
                 defaultValue={selectedPreset.saturation} onChange={setSaturationAmount} format={v => `${(v * 100).toFixed(0)}%`} />
@@ -1809,7 +1930,7 @@ export default function App() {
 
             {/* Grain Section */}
             <div className="px-3 pt-1 pb-1 flex items-center justify-between">
-              <SectionHeader title="Film Grain" />
+              <SectionHeader title="Film Grain" icon={<GrainIcon />} />
               <button
                 onClick={handleRerollGrain}
                 className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-amber-400 transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800/60"
@@ -1829,7 +1950,7 @@ export default function App() {
 
             {/* Effects Section */}
             <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Effects" />
+              <SectionHeader title="Effects" icon={<EffectsIcon />} />
             </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="Vignette" value={eff.vignette} min={0} max={0.6} step={0.01}
@@ -1840,7 +1961,7 @@ export default function App() {
 
             {/* Optical Effects Section */}
             <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Optical Effects" />
+              <SectionHeader title="Optical Effects" icon={<OpticalIcon />} />
             </div>
             <div className="px-3 pb-3 space-y-1.5">
               <SliderControl label="Purple Fringing" value={eff.purpleFringing} min={0} max={1} step={0.01}
@@ -1855,7 +1976,7 @@ export default function App() {
 
             {/* Overlays Section */}
             <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Overlays" />
+              <SectionHeader title="Overlays" icon={<OverlayIcon />} />
             </div>
             <div className="px-3 pb-2">
               {/* Category tabs */}
@@ -1939,7 +2060,7 @@ export default function App() {
 
             {/* Frame Section */}
             <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Frame" />
+              <SectionHeader title="Frame" icon={<FrameIcon />} />
             </div>
             <div className="px-3 pb-3 space-y-1.5">
               <div className="flex items-center gap-2">
@@ -1973,7 +2094,7 @@ export default function App() {
 
             {/* Film Frame Section */}
             <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Film Frame" />
+              <SectionHeader title="Film Frame" icon={<FrameIcon />} />
             </div>
             <div className="px-3 pb-3">
               <div className="grid grid-cols-4 gap-1.5">
@@ -2005,7 +2126,7 @@ export default function App() {
 
             {/* Crop & Rotate */}
             <div className="px-3 pt-1 pb-1">
-              <SectionHeader title="Crop & Rotate" />
+              <SectionHeader title="Crop & Rotate" icon={<CropIcon />} />
             </div>
             <div className="px-3 pb-3 space-y-2">
               <div className="flex flex-wrap gap-2">
@@ -2083,7 +2204,7 @@ export default function App() {
             )}
             <div className="border-t border-zinc-800/50 px-3 py-3 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <SectionHeader title="Custom Preset" />
+                <SectionHeader title="Custom Preset" icon={<PresetIcon />} />
                 {selectedPreset.id.startsWith('custom-') && (
                   <button
                     onClick={() => deleteCustomPreset(selectedPreset.id)}
@@ -2438,9 +2559,12 @@ export default function App() {
 
 // ─── Components ──────────────────────────────────────────
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, icon }: { title: string; icon?: ReactNode }) {
   return (
-    <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.15em]">{title}</h3>
+    <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.15em] flex items-center gap-2">
+      {icon}
+      <span>{title}</span>
+    </h3>
   );
 }
 
@@ -2462,7 +2586,10 @@ function SliderControl({
     <div className="group">
       <div className="flex items-center justify-between mb-0.5">
         <label className={`text-[11px] font-medium transition-colors ${isModified ? 'text-amber-500/80' : 'text-zinc-500'}`}>
-          {label}
+          <span className="inline-flex items-center gap-2">
+            <SliderLabelIcon />
+            {label}
+          </span>
         </label>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-zinc-600 font-mono tabular-nums">{format(value)}</span>
@@ -2494,49 +2621,65 @@ function LevelsHistogram({
   histogram,
   inputBlack,
   inputWhite,
-  outputBlack,
-  outputWhite,
+  gamma,
   onInputBlackChange,
   onInputWhiteChange,
-  onOutputBlackChange,
-  onOutputWhiteChange,
+  onGammaChange,
 }: {
   histogram: Uint32Array | null;
   inputBlack: number;
   inputWhite: number;
-  outputBlack: number;
-  outputWhite: number;
+  gamma: number;
   onInputBlackChange: (value: number | null) => void;
   onInputWhiteChange: (value: number | null) => void;
-  onOutputBlackChange: (value: number | null) => void;
-  onOutputWhiteChange: (value: number | null) => void;
+  onGammaChange: (value: number | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const histogramRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef<{
-    marker: 'inputBlack' | 'inputWhite' | 'outputBlack' | 'outputWhite' | null;
+    marker: 'inputBlack' | 'inputWhite' | 'gamma' | null;
     startX: number;
     startValue: number;
   }>({ marker: null, startX: 0, startValue: 0 });
 
   const clamp = (value: number, min = 0, max = 1) => Math.min(Math.max(value, min), max);
 
-  const updateValue = useCallback((marker: 'inputBlack' | 'inputWhite' | 'outputBlack' | 'outputWhite', x: number) => {
+  const minGamma = 0.25;
+  const maxGamma = 4;
+
+  const gammaToPosition = useCallback((gammaValue: number) => {
+    const normalizedGamma = Math.min(1, Math.max(0, Math.log(gammaValue / minGamma) / Math.log(maxGamma / minGamma)));
+    return inputBlack + normalizedGamma * (inputWhite - inputBlack);
+  }, [inputBlack, inputWhite]);
+
+  const positionToGamma = useCallback((position: number) => {
+    const range = Math.max(0.001, inputWhite - inputBlack);
+    const normalized = Math.min(1, Math.max(0, (position - inputBlack) / range));
+    return minGamma * Math.pow(maxGamma / minGamma, normalized);
+  }, [inputBlack, inputWhite]);
+
+  const clampGammaPosition = useCallback((position: number) => {
+    const minGap = 0.02;
+    return Math.min(inputWhite - minGap, Math.max(inputBlack + minGap, position));
+  }, [inputBlack, inputWhite]);
+
+  const updateValue = useCallback((marker: 'inputBlack' | 'inputWhite' | 'gamma', x: number) => {
     const bar = histogramRef.current;
     if (!bar) return;
     const rect = bar.getBoundingClientRect();
     const normalized = clamp((x - rect.left) / rect.width);
+    const gammaPos = gammaToPosition(gamma);
+    const minGap = 0.02;
 
     if (marker === 'inputBlack') {
-      onInputBlackChange(Math.min(normalized, inputWhite - 0.01));
+      onInputBlackChange(Math.min(normalized, gammaPos - minGap));
     } else if (marker === 'inputWhite') {
-      onInputWhiteChange(Math.max(normalized, inputBlack + 0.01));
-    } else if (marker === 'outputBlack') {
-      onOutputBlackChange(Math.min(normalized, outputWhite - 0.01));
-    } else if (marker === 'outputWhite') {
-      onOutputWhiteChange(Math.max(normalized, outputBlack + 0.01));
+      onInputWhiteChange(Math.max(normalized, gammaPos + minGap));
+    } else if (marker === 'gamma') {
+      const pos = clampGammaPosition(normalized);
+      onGammaChange(positionToGamma(pos));
     }
-  }, [inputBlack, inputWhite, outputBlack, outputWhite, onInputBlackChange, onInputWhiteChange, onOutputBlackChange, onOutputWhiteChange]);
+  }, [inputBlack, inputWhite, onInputBlackChange, onInputWhiteChange, onGammaChange, gamma, gammaToPosition, positionToGamma, clampGammaPosition]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -2576,10 +2719,9 @@ function LevelsHistogram({
     };
 
     drawMarker(inputBlack, 'rgba(250,204,21,0.85)');
+    drawMarker(gammaToPosition(gamma), 'rgba(56, 189, 248, 0.85)');
     drawMarker(inputWhite, 'rgba(250,204,21,0.85)');
-    drawMarker(outputBlack, 'rgba(131, 204, 255, 0.75)');
-    drawMarker(outputWhite, 'rgba(131, 204, 255, 0.75)');
-  }, [histogram, inputBlack, inputWhite, outputBlack, outputWhite]);
+  }, [histogram, inputBlack, inputWhite, gamma, gammaToPosition]);
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
@@ -2599,15 +2741,12 @@ function LevelsHistogram({
     };
   }, [updateValue]);
 
-  const startDrag = (marker: 'inputBlack' | 'inputWhite' | 'outputBlack' | 'outputWhite') => (event: React.PointerEvent<HTMLDivElement>) => {
+  const startDrag = (marker: 'inputBlack' | 'inputWhite' | 'gamma') => (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     draggingRef.current = {
       marker,
       startX: event.clientX,
-      startValue: marker === 'inputBlack' ? inputBlack
-        : marker === 'inputWhite' ? inputWhite
-        : marker === 'outputBlack' ? outputBlack
-        : outputWhite,
+      startValue: marker === 'inputBlack' ? inputBlack : marker === 'inputWhite' ? inputWhite : gamma,
     };
   };
 
@@ -2623,17 +2762,13 @@ function LevelsHistogram({
         </div>
         <div ref={histogramRef} className="relative mt-2 h-7 rounded-lg overflow-hidden bg-zinc-900">
           <div className="absolute inset-0 bg-gradient-to-r from-black via-zinc-800 to-white opacity-90" />
-          {['inputBlack', 'inputWhite', 'outputBlack', 'outputWhite'].map((marker) => {
+          {['inputBlack', 'gamma', 'inputWhite'].map((marker) => {
             const position = marker === 'inputBlack'
               ? inputBlack
               : marker === 'inputWhite'
                 ? inputWhite
-                : marker === 'outputBlack'
-                  ? outputBlack
-                  : outputWhite;
-            const color = marker === 'inputBlack' || marker === 'inputWhite'
-              ? 'bg-amber-400'
-              : 'bg-sky-400';
+                : gammaToPosition(gamma);
+            const color = marker === 'gamma' ? 'bg-sky-400' : 'bg-amber-400';
             const left = `${clamp(position) * 100}%`;
             return (
               <div
@@ -2645,9 +2780,10 @@ function LevelsHistogram({
             );
           })}
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-zinc-500">
-          <span>In Black: {Math.round(inputBlack * 255)}</span>
-          <span className="text-right">Out White: {Math.round(outputWhite * 255)}</span>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-zinc-500">
+          <span>Blacks: {Math.round(inputBlack * 255)}</span>
+          <span className="text-center">Mids: {gamma.toFixed(2)}</span>
+          <span className="text-right">Highlights: {Math.round(inputWhite * 255)}</span>
         </div>
       </div>
     </div>

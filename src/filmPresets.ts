@@ -47,6 +47,38 @@ export interface FilmPreset {
 }
 
 export const filmPresets: FilmPreset[] = [
+  {
+    id: 'none',
+    name: 'None',
+    brand: 'Neutral',
+    type: 'color-negative',
+    iso: 0,
+    description: 'No preset applied. Start from the original image with no changes.',
+    curves: {
+      r: [[0, 0], [1, 1]],
+      g: [[0, 0], [1, 1]],
+      b: [[0, 0], [1, 1]],
+    },
+    contrast: 0,
+    brightness: 0,
+    saturation: 1,
+    shadows: [0, 0, 0],
+    midtones: [0, 0, 0],
+    highlights: [0, 0, 0],
+    grainAmount: 0,
+    grainSize: 1,
+    grainRoughness: 0,
+    vignette: 0,
+    halation: 0,
+    fadedBlacks: 0,
+    purpleFringing: 0,
+    lensDistortion: 0,
+    colorShiftX: 0,
+    colorShiftY: 0,
+    whiteBalance: 0,
+    toeStrength: 0,
+    shoulderStrength: 0,
+  },
   // ═══════════════ COLOR NEGATIVE ═══════════════
   {
     id: 'portra-400',
