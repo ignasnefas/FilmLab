@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, useLayoutEffect } from 'react';
 import { filmPresets, FilmPreset } from './filmPresets';
 import { processImage, ProcessingParams } from './filmProcessor';
 import FramingTool from './FramingTool';
@@ -40,6 +40,70 @@ const ResetIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
   </svg>
 );
+
+interface BatchImage {
+  id: string;
+  file?: File;
+  url: string;
+  width: number;
+  height: number;
+  name: string;
+  data: ImageData;
+}
+
+interface CropRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+type CropDragType = 'move' | 'nw' | 'ne' | 'sw' | 'se';
+
+interface HistoryEntry {
+  imageData: ImageData;
+  selectedPreset: FilmPreset;
+  grainAmount: number | null;
+  grainSize: number | null;
+  grainRoughness: number | null;
+  vignetteAmount: number | null;
+  halationAmount: number | null;
+  contrastAmount: number | null;
+  saturationAmount: number | null;
+  brightnessAmount: number | null;
+  fadedBlacks: number | null;
+  exposure: number;
+  purpleFringing: number | null;
+  lensDistortion: number | null;
+  colorShiftX: number | null;
+  colorShiftY: number | null;
+  whiteBalance: number | null;
+  frameColor: 'none' | 'white' | 'black';
+  frameThickness: number;
+  selectedOverlay: string | null;
+  overlayOpacity: number;
+  overlayBlend: BlendMode;
+  selectedFrame: string | null;
+  activeBatchIndex: number | null;
+}
+
+const PRESET_STORAGE_KEY = 'filmLabCustomPresets';
+const FAVORITES_STORAGE_KEY = 'filmLabFavorites';
+
+function loadFromStorage<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveToStorage<T>(key: string, value: T) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
 
 type FilmType = 'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema';
 
@@ -150,10 +214,97 @@ function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w:
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
 }
 
+function rotateImageData(source: ImageData, angle: number): ImageData {
+  const normalized = ((angle % 360) + 360) % 360;
+  const swap = normalized === 90 || normalized === 270;
+  const canvas = document.createElement('canvas');
+  canvas.width = swap ? source.height : source.width;
+  canvas.height = swap ? source.width : source.height;
+  const ctx = canvas.getContext('2d')!;
+
+  const temp = document.createElement('canvas');
+  temp.width = source.width;
+  temp.height = source.height;
+  temp.getContext('2d')!.putImageData(source, 0, 0);
+
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((normalized * Math.PI) / 180);
+  ctx.drawImage(temp, -source.width / 2, -source.height / 2);
+
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function cropImageData(source: ImageData, ratio: 'original' | '1:1' | '4:3' | '16:9'): ImageData {
+  if (ratio === 'original') return source;
+
+  const targetRatio = ratio === '1:1' ? 1 : ratio === '4:3' ? 4 / 3 : 16 / 9;
+  const width = source.width;
+  const height = source.height;
+  let cropWidth = width;
+  let cropHeight = height;
+
+  if (width / height > targetRatio) {
+    cropWidth = Math.round(height * targetRatio);
+  } else {
+    cropHeight = Math.round(width / targetRatio);
+  }
+
+  const cropX = Math.round((width - cropWidth) / 2);
+  const cropY = Math.round((height - cropHeight) / 2);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+  const ctx = canvas.getContext('2d')!;
+
+  const temp = document.createElement('canvas');
+  temp.width = width;
+  temp.height = height;
+  temp.getContext('2d')!.putImageData(source, 0, 0);
+
+  ctx.drawImage(temp, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  return ctx.getImageData(0, 0, cropWidth, cropHeight);
+}
+
+function cropImageDataRect(source: ImageData, rect: CropRect): ImageData {
+  const cropX = Math.round(rect.x * source.width);
+  const cropY = Math.round(rect.y * source.height);
+  const cropWidth = Math.round(rect.w * source.width);
+  const cropHeight = Math.round(rect.h * source.height);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+  const ctx = canvas.getContext('2d')!;
+
+  const temp = document.createElement('canvas');
+  temp.width = source.width;
+  temp.height = source.height;
+  temp.getContext('2d')!.putImageData(source, 0, 0);
+
+  ctx.drawImage(temp, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  return ctx.getImageData(0, 0, cropWidth, cropHeight);
+}
+
 export default function App() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<FilmPreset>(filmPresets[0]);
+  const [customPresets, setCustomPresets] = useState<FilmPreset[]>(() => loadFromStorage<FilmPreset[]>(PRESET_STORAGE_KEY, []));
+  const [favorites, setFavorites] = useState<string[]>(() => loadFromStorage<string[]>(FAVORITES_STORAGE_KEY, []));
+  const [customPresetName, setCustomPresetName] = useState('');
+  const [customPresetDescription, setCustomPresetDescription] = useState('');
+  const [batchImages, setBatchImages] = useState<BatchImage[]>([]);
+  const [activeBatchIndex, setActiveBatchIndex] = useState<number | null>(null);
+  const [cropMode, setCropMode] = useState(false);
+  const [cropRatio, setCropRatio] = useState<'original' | '1:1' | '4:3' | '16:9'>('original');
+  const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const [draggingCrop, setDraggingCrop] = useState(false);
+  const cropDragRef = useRef<{ startX: number; startY: number; startRect: CropRect | null; type: CropDragType } | null>(null);
+  const [canvasBounds, setCanvasBounds] = useState<DOMRect | null>(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [redoStack, setRedoStack] = useState<HistoryEntry[]>([]);
   const [filterType, setFilterType] = useState<FilmType>('all');
   const [processing, setProcessing] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -210,6 +361,7 @@ export default function App() {
   const processedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayImgRef = useRef<HTMLImageElement | null>(null);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
+  const originalImageDataRef = useRef<ImageData | null>(null);
 
   // Reset overrides when preset changes
   useEffect(() => {
@@ -381,6 +533,11 @@ export default function App() {
 
     setImage(img);
     setImageData(data);
+    originalImageDataRef.current = data;
+    setHistory([]);
+    setRedoStack([]);
+    setCropMode(false);
+    setCropRect(null);
 
     if (originalCanvasRef.current) {
       originalCanvasRef.current.width = w;
@@ -399,23 +556,420 @@ export default function App() {
     reader.readAsDataURL(file);
   }, [loadImage]);
 
+  const addBatchEntry = useCallback((entry: BatchImage) => {
+    setBatchImages((prev) => {
+      const next = [...prev, entry];
+      setActiveBatchIndex(next.length - 1);
+      return next;
+    });
+    const img = new Image();
+    img.src = entry.url;
+    setImage(img);
+    setImageData(entry.data);
+    originalImageDataRef.current = entry.data;
+    setHistory([]);
+    setRedoStack([]);
+    setCropMode(false);
+    setCropRect(null);
+  }, []);
+
+  const handleBatchFiles = useCallback((files: FileList | File[]) => {
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (!result || typeof result !== 'string') return;
+
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 3200;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            const scale = maxDim / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = w;
+          tempCanvas.height = h;
+          const ctx = tempCanvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, w, h);
+          const data = ctx.getImageData(0, 0, w, h);
+          addBatchEntry({
+            id: `${file.name}-${Date.now()}`,
+            file,
+            url: result,
+            width: w,
+            height: h,
+            name: file.name,
+            data,
+          });
+        };
+        img.src = result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }, [addBatchEntry]);
+
   const handleDemo = useCallback((url: string) => {
     setLoadingDemo(true);
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      loadImage(img);
+      const maxDim = 3200;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const scale = maxDim / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = w;
+      tempCanvas.height = h;
+      const ctx = tempCanvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, w, h);
+      const data = ctx.getImageData(0, 0, w, h);
+      addBatchEntry({
+        id: `demo-${Date.now()}`,
+        url,
+        width: w,
+        height: h,
+        name: 'Sample',
+        data,
+      });
       setLoadingDemo(false);
     };
     img.onerror = () => setLoadingDemo(false);
     img.src = url;
-  }, [loadImage]);
+  }, [addBatchEntry]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) handleFile(file);
-  }, [handleFile]);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleBatchFiles(files);
+    }
+  }, [handleBatchFiles]);
+
+  const selectBatchImage = useCallback((index: number) => {
+    const entry = batchImages[index];
+    if (!entry) return;
+    setActiveBatchIndex(index);
+    const img = new Image();
+    img.src = entry.url;
+    setImage(img);
+    setImageData(entry.data);
+    originalImageDataRef.current = entry.data;
+    setHistory([]);
+    setRedoStack([]);
+    setCropMode(false);
+    setCropRect(null);
+  }, [batchImages]);
+
+  const createSnapshot = useCallback((): HistoryEntry | null => {
+    if (!imageData) return null;
+    return {
+      imageData: new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height),
+      selectedPreset,
+      grainAmount,
+      grainSize,
+      grainRoughness,
+      vignetteAmount,
+      halationAmount,
+      contrastAmount,
+      saturationAmount,
+      brightnessAmount,
+      fadedBlacks,
+      exposure,
+      purpleFringing,
+      lensDistortion,
+      colorShiftX,
+      colorShiftY,
+      whiteBalance,
+      frameColor,
+      frameThickness,
+      selectedOverlay,
+      overlayOpacity,
+      overlayBlend,
+      selectedFrame,
+      activeBatchIndex,
+    };
+  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, frameColor, frameThickness, selectedOverlay, overlayOpacity, overlayBlend, selectedFrame, activeBatchIndex]);
+
+  const restoreSnapshot = useCallback((snapshot: HistoryEntry) => {
+    setImageData(snapshot.imageData);
+    originalImageDataRef.current = snapshot.imageData;
+    setImage(new Image());
+    setSelectedPreset(snapshot.selectedPreset);
+    setGrainAmount(snapshot.grainAmount);
+    setGrainSize(snapshot.grainSize);
+    setGrainRoughness(snapshot.grainRoughness);
+    setVignetteAmount(snapshot.vignetteAmount);
+    setHalationAmount(snapshot.halationAmount);
+    setContrastAmount(snapshot.contrastAmount);
+    setSaturationAmount(snapshot.saturationAmount);
+    setBrightnessAmount(snapshot.brightnessAmount);
+    setFadedBlacks(snapshot.fadedBlacks);
+    setExposure(snapshot.exposure);
+    setPurpleFringing(snapshot.purpleFringing);
+    setLensDistortion(snapshot.lensDistortion);
+    setColorShiftX(snapshot.colorShiftX);
+    setColorShiftY(snapshot.colorShiftY);
+    setWhiteBalance(snapshot.whiteBalance);
+    setFrameColor(snapshot.frameColor);
+    setFrameThickness(snapshot.frameThickness);
+    setSelectedOverlay(snapshot.selectedOverlay);
+    setOverlayOpacity(snapshot.overlayOpacity);
+    setOverlayBlend(snapshot.overlayBlend);
+    setSelectedFrame(snapshot.selectedFrame);
+    setActiveBatchIndex(snapshot.activeBatchIndex);
+  }, []);
+
+  const pushHistory = useCallback(() => {
+    const snapshot = createSnapshot();
+    if (!snapshot) return;
+    setHistory((prev) => [...prev, snapshot].slice(-30));
+    setRedoStack([]);
+  }, [createSnapshot]);
+
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const previous = history[history.length - 1];
+    const current = createSnapshot();
+    if (current) {
+      setRedoStack((prev) => [current, ...prev].slice(0, 30));
+    }
+    setHistory((prev) => prev.slice(0, -1));
+    restoreSnapshot(previous);
+  }, [history, createSnapshot, restoreSnapshot]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[0];
+    const current = createSnapshot();
+    if (current) {
+      setHistory((prev) => [...prev, current].slice(-30));
+    }
+    setRedoStack((prev) => prev.slice(1));
+    restoreSnapshot(next);
+  }, [redoStack, createSnapshot, restoreSnapshot]);
+
+  const toggleFavorite = useCallback((presetId: string) => {
+    setFavorites((prev) => prev.includes(presetId) ? prev.filter((id) => id !== presetId) : [...prev, presetId]);
+  }, []);
+
+  const handleDownloadBatch = useCallback(async () => {
+    if (batchImages.length === 0) return;
+    setProcessing(true);
+    for (const entry of batchImages) {
+      const result = processImage(entry.data, selectedPreset, currentParams, grainSeed);
+      const canvas = document.createElement('canvas');
+      canvas.width = result.width;
+      canvas.height = result.height;
+      canvas.getContext('2d')!.putImageData(result, 0, 0);
+      const link = document.createElement('a');
+      const name = entry.file?.name.replace(/\.[^/.]+$/, '') || entry.name || 'batch-image';
+      link.download = `${name}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.92);
+      link.click();
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    }
+    setProcessing(false);
+  }, [batchImages, selectedPreset, currentParams, grainSeed]);
+
+  useEffect(() => {
+    saveToStorage(PRESET_STORAGE_KEY, customPresets);
+  }, [customPresets]);
+
+  useEffect(() => {
+    saveToStorage(FAVORITES_STORAGE_KEY, favorites);
+  }, [favorites]);
+
+  useLayoutEffect(() => {
+    const updateBounds = () => {
+      if (canvasRef.current) {
+        setCanvasBounds(canvasRef.current.getBoundingClientRect());
+      }
+    };
+    updateBounds();
+    window.addEventListener('resize', updateBounds);
+    return () => window.removeEventListener('resize', updateBounds);
+  }, [imageData, zoom, splitView, cropMode]);
+
+  useEffect(() => {
+    if (!imageData || !cropMode) return;
+
+    const targetRatio = cropRatio === 'original'
+      ? imageData.width / imageData.height
+      : cropRatio === '1:1'
+        ? 1
+        : cropRatio === '4:3'
+          ? 4 / 3
+          : 16 / 9;
+
+    const width = imageData.width;
+    const height = imageData.height;
+    let cropWidth = width;
+    let cropHeight = height;
+
+    if (width / height > targetRatio) {
+      cropWidth = Math.round(height * targetRatio);
+    } else {
+      cropHeight = Math.round(width / targetRatio);
+    }
+
+    setCropRect({
+      x: (width - cropWidth) / 2 / width,
+      y: (height - cropHeight) / 2 / height,
+      w: cropWidth / width,
+      h: cropHeight / height,
+    });
+  }, [imageData, cropMode, cropRatio]);
+
+  const applyRotation = useCallback((angle: number) => {
+    if (!imageData) return;
+    pushHistory();
+    const rotated = rotateImageData(imageData, angle);
+    setImageData(rotated);
+    originalImageDataRef.current = rotated;
+    setProcessedImageData(null);
+  }, [imageData, pushHistory]);
+
+  const applyCrop = useCallback(() => {
+    if (!imageData || !cropRect) return;
+    pushHistory();
+    const cropped = cropImageDataRect(imageData, cropRect);
+    setImageData(cropped);
+    originalImageDataRef.current = cropped;
+    setProcessedImageData(null);
+    setCropMode(false);
+    setCropRect(null);
+  }, [imageData, cropRect, pushHistory]);
+
+  const onCropPointerDown = useCallback((type: CropDragType) => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!cropRect || !canvasBounds) return;
+    e.preventDefault();
+    e.stopPropagation();
+    cropDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startRect: cropRect,
+      type,
+    };
+    setDraggingCrop(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [cropRect, canvasBounds]);
+
+  const onCropPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingCrop || !cropRect || !cropDragRef.current || !canvasBounds) return;
+    e.preventDefault();
+    const dx = (e.clientX - cropDragRef.current.startX) / canvasBounds.width;
+    const dy = (e.clientY - cropDragRef.current.startY) / canvasBounds.height;
+    const start = cropDragRef.current.startRect;
+    if (!start) return;
+
+    const aspectRatio = cropRatio === 'original'
+      ? start.w / start.h
+      : cropRatio === '1:1'
+        ? 1
+        : cropRatio === '4:3'
+          ? 4 / 3
+          : 16 / 9;
+
+    const clampRect = (rect: CropRect) => ({
+      x: Math.min(Math.max(0, rect.x), 1 - rect.w),
+      y: Math.min(Math.max(0, rect.y), 1 - rect.h),
+      w: Math.min(Math.max(0.05, rect.w), 1),
+      h: Math.min(Math.max(0.05, rect.h), 1),
+    });
+
+    let next = { ...start };
+    const minSize = 0.05;
+    const type = cropDragRef.current.type;
+
+    if (type === 'move') {
+      next.x = Math.min(Math.max(0, start.x + dx), 1 - start.w);
+      next.y = Math.min(Math.max(0, start.y + dy), 1 - start.h);
+    } else {
+      let newX = start.x;
+      let newY = start.y;
+      let newW = start.w;
+      let newH = start.h;
+
+      if (type === 'nw' || type === 'sw') {
+        newX = start.x + dx;
+      }
+      if (type === 'nw' || type === 'ne') {
+        newY = start.y + dy;
+      }
+      if (type === 'ne' || type === 'se') {
+        newW = start.w + dx;
+      }
+      if (type === 'sw' || type === 'se') {
+        newH = start.h + dy;
+      }
+
+      if (cropRatio !== 'original') {
+        if (type === 'nw' || type === 'se') {
+          newH = Math.max(minSize, newW / aspectRatio);
+          if (type === 'nw') newY = start.y + (start.h - newH);
+        } else if (type === 'ne' || type === 'sw') {
+          newW = Math.max(minSize, newH * aspectRatio);
+          if (type === 'ne') newX = start.x;
+          if (type === 'sw') newX = start.x + (start.w - newW);
+        }
+      }
+
+      if (type === 'nw') {
+        next = {
+          x: Math.min(Math.max(0, newX), start.x + start.w - minSize),
+          y: Math.min(Math.max(0, newY), start.y + start.h - minSize),
+          w: Math.min(Math.max(minSize, start.x + start.w - newX), 1),
+          h: Math.min(Math.max(minSize, start.y + start.h - newY), 1),
+        };
+      } else if (type === 'ne') {
+        next = {
+          x: start.x,
+          y: Math.min(Math.max(0, newY), start.y + start.h - minSize),
+          w: Math.min(Math.max(minSize, newW), 1 - start.x),
+          h: Math.min(Math.max(minSize, start.y + start.h - newY), 1),
+        };
+      } else if (type === 'sw') {
+        next = {
+          x: Math.min(Math.max(0, newX), start.x + start.w - minSize),
+          y: start.y,
+          w: Math.min(Math.max(minSize, start.x + start.w - newX), 1),
+          h: Math.min(Math.max(minSize, newH), 1 - start.y),
+        };
+      } else if (type === 'se') {
+        next = {
+          x: start.x,
+          y: start.y,
+          w: Math.min(Math.max(minSize, newW), 1 - start.x),
+          h: Math.min(Math.max(minSize, newH), 1 - start.y),
+        };
+      }
+    }
+
+    setCropRect(clampRect(next));
+  }, [draggingCrop, cropRatio, cropRect, canvasBounds]);
+
+  const onCropPointerUp = useCallback(() => {
+    setDraggingCrop(false);
+    cropDragRef.current = null;
+  }, []);
+
+  const resetTransform = useCallback(() => {
+    if (!originalImageDataRef.current) return;
+    pushHistory();
+    setImageData(originalImageDataRef.current);
+    setProcessedImageData(null);
+    setCropMode(false);
+    setCropRect(null);
+  }, [pushHistory]);
 
   useEffect(() => {
     const el = mainAreaRef.current;
@@ -504,27 +1058,40 @@ export default function App() {
     setWhiteBalance(null);
   }, []);
 
-  const filteredPresets = filterType === 'all'
-    ? filmPresets
-    : filmPresets.filter(p => p.type === filterType);
+  const customPresetItems = useMemo(() => customPresets.filter((preset) => (
+    (filterType === 'all' || preset.type === filterType) &&
+    (!showFavoritesOnly || favorites.includes(preset.id))
+  )), [customPresets, filterType, showFavoritesOnly, favorites]);
+
+  const filteredPresets = useMemo(() => filmPresets.filter((preset) => (
+    (filterType === 'all' || preset.type === filterType) &&
+    (!showFavoritesOnly || favorites.includes(preset.id))
+  )), [filterType, showFavoritesOnly, favorites]);
+
+  const displayedPresets = useMemo(() => [...customPresetItems, ...filteredPresets], [customPresetItems, filteredPresets]);
+
+  const selectPreset = useCallback((preset: FilmPreset) => {
+    if (imageData) pushHistory();
+    setSelectedPreset(preset);
+  }, [imageData, pushHistory]);
 
   // Ensure compare uses the currently selected overlay blend mode
   const activeOverlayBlend = selectedOverlay ? overlayBlend : 'normal';
 
   // Preset navigation handlers
-  const currentPresetIndex = filteredPresets.findIndex(p => p.id === selectedPreset.id);
+  const currentPresetIndex = displayedPresets.findIndex(p => p.id === selectedPreset.id);
   
   const goToNextPreset = useCallback(() => {
-    if (filteredPresets.length === 0) return;
-    const nextIndex = (currentPresetIndex + 1) % filteredPresets.length;
-    setSelectedPreset(filteredPresets[nextIndex]);
-  }, [filteredPresets, currentPresetIndex]);
+    if (displayedPresets.length === 0) return;
+    const nextIndex = (currentPresetIndex + 1) % displayedPresets.length;
+    setSelectedPreset(displayedPresets[nextIndex]);
+  }, [displayedPresets, currentPresetIndex]);
 
   const goToPrevPreset = useCallback(() => {
-    if (filteredPresets.length === 0) return;
-    const prevIndex = (currentPresetIndex - 1 + filteredPresets.length) % filteredPresets.length;
-    setSelectedPreset(filteredPresets[prevIndex]);
-  }, [filteredPresets, currentPresetIndex]);
+    if (displayedPresets.length === 0) return;
+    const prevIndex = (currentPresetIndex - 1 + displayedPresets.length) % displayedPresets.length;
+    setSelectedPreset(displayedPresets[prevIndex]);
+  }, [displayedPresets, currentPresetIndex]);
 
   // Keyboard navigation for presets
   useEffect(() => {
@@ -570,6 +1137,43 @@ export default function App() {
     colorShiftY: colorShiftY ?? selectedPreset.colorShiftY,
     whiteBalance: whiteBalance ?? selectedPreset.whiteBalance,
   };
+
+  const handleSaveCustomPreset = useCallback(() => {
+    const name = customPresetName.trim() || `${selectedPreset.name} Custom`;
+    const description = customPresetDescription.trim() || `Custom preset based on ${selectedPreset.name}`;
+    const newPreset: FilmPreset = {
+      ...selectedPreset,
+      id: `custom-${Date.now()}`,
+      name,
+      brand: 'My Presets',
+      description,
+      contrast: eff.contrast,
+      brightness: eff.brightness,
+      saturation: eff.saturation,
+      grainAmount: eff.grainAmount,
+      grainSize: eff.grainSize,
+      grainRoughness: eff.grainRoughness,
+      vignette: eff.vignette,
+      halation: eff.halation,
+      fadedBlacks: eff.fadedBlacks,
+      purpleFringing: eff.purpleFringing,
+      lensDistortion: eff.lensDistortion,
+      colorShiftX: eff.colorShiftX,
+      colorShiftY: eff.colorShiftY,
+      whiteBalance: eff.whiteBalance,
+    };
+    setCustomPresets((prev) => [...prev, newPreset]);
+    setSelectedPreset(newPreset);
+    setCustomPresetName('');
+    setCustomPresetDescription('');
+  }, [customPresetDescription, customPresetName, eff, selectedPreset]);
+
+  const deleteCustomPreset = useCallback((id: string) => {
+    setCustomPresets((prev) => prev.filter((preset) => preset.id !== id));
+    if (selectedPreset.id === id) {
+      setSelectedPreset(filmPresets[0]);
+    }
+  }, [selectedPreset.id]);
 
   // Check if any overrides are active
   const hasOverrides = grainAmount !== null || grainSize !== null || grainRoughness !== null ||
@@ -661,6 +1265,31 @@ export default function App() {
                 <div className="w-px h-5 bg-zinc-800 mx-1" />
               </>
             )}
+            {image && (
+              <>
+                <button
+                  onClick={handleUndo}
+                  disabled={history.length === 0}
+                  className="px-2.5 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ↶ Undo
+                </button>
+                <button
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  className="px-2.5 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ↷ Redo
+                </button>
+                <button
+                  onClick={() => toggleFavorite(selectedPreset.id)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 flex-shrink-0 ${favorites.includes(selectedPreset.id) ? 'bg-amber-500 text-black border-amber-500/30' : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'}`}
+                  title={favorites.includes(selectedPreset.id) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {favorites.includes(selectedPreset.id) ? '★ Favorite' : '☆ Favorite'}
+                </button>
+              </>
+            )}
             <button
               onClick={() => setFramingToolOpen(true)}
               className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
@@ -706,7 +1335,7 @@ export default function App() {
 
           {/* Type Filter */}
           <div className="sticky top-0 z-10 px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               {(Object.keys(typeLabels) as FilmType[]).map(type => (
                 <button
                   key={type}
@@ -720,8 +1349,92 @@ export default function App() {
                   {typeLabels[type]}
                 </button>
               ))}
+              <button
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  showFavoritesOnly
+                    ? 'bg-amber-500 text-black shadow-sm'
+                    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                }`}
+              >
+                {showFavoritesOnly ? '★ Favorites' : 'Favorites'}
+              </button>
+            </div>
+            <div className="mt-3 px-1 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                <span>Batch ({batchImages.length})</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    Add Images
+                  </button>
+                  {batchImages.length > 0 && (
+                    <button
+                      onClick={handleDownloadBatch}
+                      className="px-2 py-1 rounded-md bg-amber-500 text-black hover:bg-amber-400 transition-colors"
+                    >
+                      Export Batch
+                    </button>
+                  )}
+                </div>
+              </div>
+              {batchImages.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                    <span>Current Batch</span>
+                    <button
+                      onClick={() => {
+                        setBatchImages([]);
+                        setActiveBatchIndex(null);
+                      }}
+                      className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1">
+                    {batchImages.map((item, index) => (
+                      <button
+                        key={item.id}
+                        onClick={() => selectBatchImage(index)}
+                        className={`aspect-square rounded overflow-hidden border ${activeBatchIndex === index ? 'border-amber-500 ring-1 ring-amber-500/30' : 'border-zinc-700/40 hover:border-zinc-500'}`}
+                      >
+                        <img src={item.url} className="w-full h-full object-cover" alt={item.name} />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
+
+          {customPresetItems.length > 0 && (
+            <div className="px-3 py-3 border-b border-zinc-800/40 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">My Presets</div>
+                <button
+                  onClick={() => setShowFavoritesOnly(false)}
+                  className="px-2 py-1 rounded-md text-[10px] uppercase tracking-[0.15em] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors"
+                >
+                  Reset Filter
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {customPresetItems.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => selectPreset(preset)}
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-left text-white hover:border-amber-500 transition-colors"
+                  >
+                    <div className="text-sm font-semibold truncate">{preset.name}</div>
+                    <div className="text-[10px] text-zinc-500 truncate">{preset.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Film Stock + Controls scroll container */}
           <div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -731,10 +1444,8 @@ export default function App() {
                 return (
                   <button
                     key={preset.id}
-                    onClick={() => {
-                      setSelectedPreset(preset);
-                    }}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-all group relative ${
+                    onClick={() => selectPreset(preset)}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-all group relative ${
                     isSelected
                       ? 'bg-zinc-800/90 shadow-sm'
                       : 'hover:bg-zinc-800/40'
@@ -747,6 +1458,9 @@ export default function App() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{preset.brand}</span>
+                        {favorites.includes(preset.id) && (
+                          <span className="text-amber-400 text-[10px]">★</span>
+                        )}
                       </div>
                       <h3 className={`text-[13px] font-semibold leading-tight ${
                         isSelected ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
@@ -985,6 +1699,73 @@ export default function App() {
               </div>
             </div>
 
+            {/* Crop & Rotate */}
+            <div className="px-3 pt-1 pb-1">
+              <SectionHeader title="Crop & Rotate" />
+            </div>
+            <div className="px-3 pb-3 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {['original', '1:1', '4:3', '16:9'].map((ratio) => (
+                  <button
+                    key={ratio}
+                    onClick={() => setCropRatio(ratio as 'original' | '1:1' | '4:3' | '16:9')}
+                    className={`px-2 py-1 rounded-md text-[10px] transition-all ${cropRatio === ratio ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                  >
+                    {ratio.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-zinc-500 leading-snug">
+                Pick a ratio and enter crop mode. Drag the overlay on the canvas to reposition the crop before applying.
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setCropMode(true)}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${cropMode ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                >
+                  {cropMode ? 'Crop Mode Active' : 'Start Crop'}
+                </button>
+                <button
+                  onClick={() => {
+                    setCropMode(false);
+                    setCropRect(null);
+                  }}
+                  className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                >
+                  Cancel Crop
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => applyRotation(-90)}
+                  className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                >
+                  Rotate Left
+                </button>
+                <button
+                  onClick={() => applyRotation(90)}
+                  className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                >
+                  Rotate Right
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={applyCrop}
+                  disabled={!cropMode || !cropRect}
+                  className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-colors ${cropMode && cropRect ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
+                >
+                  Apply Crop
+                </button>
+                <button
+                  onClick={resetTransform}
+                  className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                >
+                  Reset Transform
+                </button>
+              </div>
+            </div>
+
             {/* Reset */}
             {hasOverrides && (
               <div className="px-3 pb-3">
@@ -996,6 +1777,37 @@ export default function App() {
                 </button>
               </div>
             )}
+            <div className="border-t border-zinc-800/50 px-3 py-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <SectionHeader title="Custom Preset" />
+                {selectedPreset.id.startsWith('custom-') && (
+                  <button
+                    onClick={() => deleteCustomPreset(selectedPreset.id)}
+                    className="text-[10px] uppercase tracking-[0.2em] text-amber-400 hover:text-amber-200"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              <input
+                value={customPresetName}
+                onChange={(e) => setCustomPresetName(e.target.value)}
+                placeholder="Preset name"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 outline-none"
+              />
+              <input
+                value={customPresetDescription}
+                onChange={(e) => setCustomPresetDescription(e.target.value)}
+                placeholder="Description"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 outline-none"
+              />
+              <button
+                onClick={handleSaveCustomPreset}
+                className="w-full py-2 rounded-lg bg-amber-500 text-black font-semibold hover:bg-amber-400 transition-colors"
+              >
+                Save Preset
+              </button>
+            </div>
             <div className="border-t border-zinc-800/50 px-3 py-3">
               <button
                 onClick={() => setIsAboutOpen(true)}
@@ -1170,6 +1982,48 @@ export default function App() {
                     }`}
                     style={{ imageRendering: 'auto' }}
                   />
+                  {cropMode && cropRect && (
+                    <div className="absolute inset-0 pointer-events-auto">
+                      <div className="absolute left-0 top-0 right-0 pointer-events-none" style={{ height: `${cropRect.y * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div className="absolute left-0 right-0 pointer-events-none" style={{ top: `${(cropRect.y + cropRect.h) * 100}%`, height: `${(1 - cropRect.y - cropRect.h) * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div className="absolute left-0 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${cropRect.x * 100}%`, height: `${cropRect.h * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div className="absolute right-0 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${(1 - cropRect.x - cropRect.w) * 100}%`, height: `${cropRect.h * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div
+                        className="absolute border border-amber-400 bg-transparent cursor-move"
+                        style={{ left: `${cropRect.x * 100}%`, top: `${cropRect.y * 100}%`, width: `${cropRect.w * 100}%`, height: `${cropRect.h * 100}%` }}
+                        onPointerDown={onCropPointerDown('move')}
+                        onPointerMove={onCropPointerMove}
+                        onPointerUp={onCropPointerUp}
+                        onPointerLeave={onCropPointerUp}
+                      >
+                        <div className={`absolute inset-0 ${draggingCrop ? 'ring-2 ring-amber-400/70' : ''}`} />
+                        {['nw','ne','sw','se'].map((handle) => {
+                          const positions: Record<string, string> = {
+                            nw: 'top-0 left-0',
+                            ne: 'top-0 right-0',
+                            sw: 'bottom-0 left-0',
+                            se: 'bottom-0 right-0',
+                          };
+                          const cursors: Record<string, string> = {
+                            nw: 'cursor-nwse-resize',
+                            ne: 'cursor-nesw-resize',
+                            sw: 'cursor-nesw-resize',
+                            se: 'cursor-nwse-resize',
+                          };
+                          return (
+                            <div
+                              key={handle}
+                              className={`${positions[handle]} absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 border border-white ${cursors[handle]}`}
+                              onPointerDown={onCropPointerDown(handle as CropDragType)}
+                              onPointerMove={onCropPointerMove}
+                              onPointerUp={onCropPointerUp}
+                              onPointerLeave={onCropPointerUp}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {!showOriginal && selectedOverlay && (
                     <img
                       src={selectedOverlay}
@@ -1196,9 +2050,12 @@ export default function App() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFile(file);
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                handleBatchFiles(files);
+              }
             }}
             className="hidden"
           />
