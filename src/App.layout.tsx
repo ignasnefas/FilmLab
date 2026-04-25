@@ -1,0 +1,1124 @@
+import { useMemo } from 'react';
+import type { FrameColor } from './App.types';
+import FramingTool from './FramingTool';
+import logo from './favicon/logo.png';
+import SectionHeader from './components/SectionHeader';
+import SliderControl from './components/SliderControl';
+import LevelsHistogram from './components/LevelsHistogram';
+import OriginalOverlay from './components/OriginalOverlay';
+import { useFilmLabState } from './App.state';
+import {
+  typeLabels,
+  typeColors,
+  typeBadge,
+  DEMO_IMAGES,
+  UploadIcon,
+  DownloadIcon,
+  CompareIcon,
+  DiceIcon,
+  EyeIcon,
+  ResetIcon,
+  LevelsIcon,
+  ToneIcon,
+  GrainIcon,
+  EffectsIcon,
+  OpticalIcon,
+  OverlayIcon,
+  FrameIcon,
+  WhiteBalanceIcon,
+  ExposureIcon,
+  ContrastIcon,
+  BrightnessIcon,
+  SaturationIcon,
+  FadedBlacksIcon,
+  GrainIconSmall,
+  VignetteIcon,
+  HalationIcon,
+  PurpleFringingIcon,
+  LensDistortionIcon,
+  ColorShiftIcon,
+  CropIcon,
+  PresetIcon,
+  StarIcon,
+  MenuIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  OVERLAYS,
+  FRAME_URLS,
+  BLEND_MODES,
+} from './App.helpers';
+
+export default function AppLayout() {
+  const state = useFilmLabState();
+
+  const {
+    image,
+    imageData,
+    selectedPreset,
+    customPresets,
+    favorites,
+    customPresetName,
+    customPresetDescription,
+    batchImages,
+    activeBatchIndex,
+    cropMode,
+    cropRatio,
+    cropRect,
+    draggingCrop,
+    showFavoritesOnly,
+    history,
+    redoStack,
+    filterType,
+    processing,
+    showOriginal,
+    splitView,
+    splitPos,
+    draggingSplit,
+    frameColor,
+    frameThickness,
+    loadingDemo,
+    sidebarOpen,
+    isAboutOpen,
+    zoom,
+    overlayCategory,
+    selectedOverlay,
+    overlayOpacity,
+    overlayBlend,
+    selectedFrame,
+    grainAmount,
+    grainSize,
+    grainRoughness,
+    vignetteAmount,
+    halationAmount,
+    contrastAmount,
+    saturationAmount,
+    brightnessAmount,
+    fadedBlacks,
+    exposure,
+    purpleFringing,
+    lensDistortion,
+    colorShiftX,
+    colorShiftY,
+    whiteBalance,
+    levelsInputBlack,
+    levelsInputWhite,
+    levelsGamma,
+    levelsOutputBlack,
+    levelsOutputWhite,
+    processedImageData,
+    canvasRef,
+    originalCanvasRef,
+    fileInputRef,
+    splitContainerRef,
+    mainAreaRef,
+    handleBatchFiles,
+    handleDrop,
+    selectBatchImage,
+    handleDemo,
+    handleDownloadBatch,
+    handleUndo,
+    handleRedo,
+    resetOverrides,
+    handleDownload,
+    applyCrop,
+    applyRotation,
+    resetTransform,
+    handleSaveCustomPreset,
+    deleteCustomPreset,
+    toggleFavorite,
+    goToNextPreset,
+    goToPrevPreset,
+    setSidebarOpen,
+    setShowOriginal,
+    setSplitView,
+    setSplitPos,
+    setDraggingSplit,
+    setCropMode,
+    setCropRatio,
+    setFilterType,
+    setShowFavoritesOnly,
+    setFrameColor,
+    setFrameThickness,
+    setOverlayCategory,
+    setSelectedOverlay,
+    setOverlayOpacity,
+    setOverlayBlend,
+    setSelectedFrame,
+    setGrainAmount,
+    setGrainSize,
+    setGrainRoughness,
+    setVignetteAmount,
+    setHalationAmount,
+    setContrastAmount,
+    setSaturationAmount,
+    setBrightnessAmount,
+    setFadedBlacks,
+    setExposure,
+    setPurpleFringing,
+    setLensDistortion,
+    setColorShiftX,
+    setColorShiftY,
+    setWhiteBalance,
+    setLevelsInputBlack,
+    setLevelsInputWhite,
+    setLevelsGamma,
+    setLevelsOutputBlack,
+    setLevelsOutputWhite,
+    setCustomPresetName,
+    setCustomPresetDescription,
+    setCropRect,
+    setZoom,
+    setIsAboutOpen,
+    setFramingToolOpen,
+    setGrainSeed,
+    setImage,
+    setImageData,
+    setActiveBatchIndex,
+    setProcessing,
+    setSelectedPreset,
+    selectPreset,
+    currentParams,
+    frameBackground,
+    framePadding,
+    getCurrentBatchEditState,
+    displayedPresets,
+    filteredPresets,
+    customPresetItems,
+    activeOverlayBlend,
+    currentPresetIndex,
+    hasOverrides,
+    eff,
+    levelsHistogram,
+    handleSplitMove,
+    onCropPointerDown,
+    onCropPointerMove,
+    onCropPointerUp,
+    framingToolOpen,
+  } = state;
+
+  const presetCountLabel = useMemo(() => `${currentPresetIndex + 1}/${filteredPresets.length}`, [currentPresetIndex, filteredPresets.length]);
+
+  return (
+    <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden">
+      <header className="border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-xl z-50 shrink-0">
+        <div className="px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="md:hidden p-1.5 rounded-lg hover:bg-zinc-800/50 transition-colors text-zinc-400 hover:text-zinc-200"
+              title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            >
+              {sidebarOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+            </button>
+            <img src={logo} alt="FilmLab logo" className="hidden md:block w-8 h-8 rounded-none object-contain" />
+            <div>
+              <h1 className="hidden md:block text-base font-bold tracking-tight leading-tight">FilmLab</h1>
+              <p className="hidden md:block text-[9px] text-zinc-600 tracking-[0.2em] uppercase leading-tight">Film Emulator</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {image && (
+              <>
+                <button
+                  onClick={() => {
+                    setSplitView((prev) => !prev);
+                    setShowOriginal(false);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 ${
+                    splitView
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                      : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'
+                  }`}
+                >
+                  <span className="inline-flex items-center justify-center">
+                    <CompareIcon />
+                  </span>
+                  <span className="hidden md:inline ml-1.5">Compare</span>
+                </button>
+                <button
+                  onMouseDown={() => setShowOriginal(true)}
+                  onMouseUp={() => setShowOriginal(false)}
+                  onMouseLeave={() => setShowOriginal(false)}
+                  onTouchStart={() => setShowOriginal(true)}
+                  onTouchEnd={() => setShowOriginal(false)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all select-none flex items-center gap-1.5 flex-shrink-0 ${
+                    showOriginal
+                      ? 'bg-zinc-700 text-zinc-200 border-zinc-600'
+                      : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50'
+                  }`}
+                >
+                  <EyeIcon />
+                  <span className="hidden md:inline">Hold: Original</span>
+                </button>
+                <div className="w-px h-5 bg-zinc-800 mx-1" />
+                <button
+                  onClick={goToPrevPreset}
+                  className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
+                  title="Previous preset (← or [)"
+                >
+                  <ChevronLeftIcon />
+                </button>
+                <div className="hidden sm:block text-[10px] text-zinc-600 px-1 tabular-nums font-medium min-w-[3ch] text-center">
+                  {presetCountLabel}
+                </div>
+                <button
+                  onClick={goToNextPreset}
+                  className="p-1.5 rounded-md text-[10px] bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0"
+                  title="Next preset (→ or ])"
+                >
+                  <ChevronRightIcon />
+                </button>
+                <div className="w-px h-5 bg-zinc-800 mx-1" />
+              </>
+            )}
+            {image && (
+              <>
+                <button
+                  onClick={handleUndo}
+                  disabled={history.length === 0}
+                  title="Undo"
+                  aria-label="Undo"
+                  className="p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ↶
+                </button>
+                <button
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  title="Redo"
+                  aria-label="Redo"
+                  className="p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ↷
+                </button>
+                <button
+                  onClick={resetOverrides}
+                  disabled={!hasOverrides}
+                  title="Reset all adjustments"
+                  className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ResetIcon />
+                  <span className="hidden md:inline ml-1">Reset All</span>
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setIsAboutOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
+              title="About the app"
+            >
+              <span className="inline-flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 19c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6z" />
+                </svg>
+              </span>
+              <span className="hidden md:inline ml-1">About</span>
+            </button>
+            {image && (
+              <button
+                onClick={handleDownload}
+                className="px-3 py-1.5 rounded-lg text-xs bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/20 flex-shrink-0 whitespace-nowrap"
+              >
+                <DownloadIcon />
+                <span className="hidden md:inline ml-1">Export JPG</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        <aside className={`${sidebarOpen ? 'w-[310px] min-w-[310px]' : 'w-0 min-w-0'} md:w-[310px] md:min-w-[310px] border-r border-zinc-800/50 bg-zinc-900/40 flex flex-col overflow-hidden transition-all duration-200 ${sidebarOpen ? 'md:relative fixed md:static top-16 left-0 right-auto bottom-0 z-40' : ''}`}>
+          <div className="md:hidden px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="FilmLab logo" className="w-8 h-8 object-contain" />
+              <div>
+                <h1 className="text-sm font-bold tracking-tight leading-tight">FilmLab</h1>
+                <p className="text-[9px] text-zinc-500 tracking-[0.2em] uppercase leading-tight">Film Emulator</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="sticky top-0 z-10 px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
+            <div className="pb-4 border-b border-zinc-800/30">
+              <SectionHeader title="Levels" icon={<LevelsIcon />} />
+              <div className="mt-2">
+                <LevelsHistogram
+                  histogram={levelsHistogram}
+                  inputBlack={eff.levelsInputBlack}
+                  inputWhite={eff.levelsInputWhite}
+                  gamma={eff.levelsGamma}
+                  onInputBlackChange={setLevelsInputBlack}
+                  onInputWhiteChange={setLevelsInputWhite}
+                  onGammaChange={setLevelsGamma}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              {(Object.keys(typeLabels) as Array<'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema'>).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                    filterType === type
+                      ? 'bg-zinc-700/80 text-zinc-100 shadow-sm'
+                      : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                  }`}
+                >
+                  {typeLabels[type]}
+                </button>
+              ))}
+              <button
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  showFavoritesOnly
+                    ? 'bg-amber-500 text-black shadow-sm'
+                    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                }`}
+              >
+                {showFavoritesOnly ? '★ Favorites' : 'Favorites'}
+              </button>
+            </div>
+            <div className="mt-3 px-1 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                <span>Batch ({batchImages.length})</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    Add Images
+                  </button>
+                  {batchImages.length > 0 && (
+                    <button
+                      onClick={handleDownloadBatch}
+                      className="px-2 py-1 rounded-md bg-amber-500 text-black hover:bg-amber-400 transition-colors"
+                    >
+                      Export Batch
+                    </button>
+                  )}
+                </div>
+              </div>
+              {batchImages.length > 1 && (
+                <>
+                  <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                    <span>Current Batch</span>
+                    <button
+                      onClick={() => {
+                        setBatchImages([]);
+                        setActiveBatchIndex(null);
+                      }}
+                      className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1">
+                    {batchImages.map((item, index) => (
+                      <button
+                        key={item.id}
+                        onClick={() => selectBatchImage(index)}
+                        className={`aspect-square rounded overflow-hidden border ${activeBatchIndex === index ? 'border-amber-500 ring-1 ring-amber-500/30' : 'border-zinc-700/40 hover:border-zinc-500'}`}
+                      >
+                        <img src={item.thumbUrl || item.url} className="w-full h-full object-cover" alt={item.name} />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {customPresetItems.length > 0 && (
+            <div className="px-3 py-3 border-b border-zinc-800/40 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">My Presets</div>
+                <button
+                  onClick={() => setShowFavoritesOnly(false)}
+                  className="px-2 py-1 rounded-md text-[10px] uppercase tracking-[0.15em] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors"
+                >
+                  Reset Filter
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {customPresetItems.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => selectPreset(preset)}
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-left text-white hover:border-amber-500 transition-colors"
+                  >
+                    <div className="text-sm font-semibold truncate">{preset.name}</div>
+                    <div className="text-[10px] text-zinc-500 truncate">{preset.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto scrollbar-thin">
+            <div className="px-2 py-1.5 space-y-0.5">
+              {filteredPresets.map((preset) => {
+                const isSelected = selectedPreset.id === preset.id;
+                return (
+                  <div
+                    key={preset.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => selectPreset(preset)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectPreset(preset);
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-all group relative cursor-pointer ${
+                      isSelected
+                        ? 'bg-zinc-800/90 shadow-sm'
+                        : 'hover:bg-zinc-800/40'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-500 rounded-r-full" />
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{preset.brand}</span>
+                          {favorites.includes(preset.id) && (
+                            <span className="text-amber-400 text-[10px]">★</span>
+                          )}
+                        </div>
+                        <h3 className={`text-[13px] font-semibold leading-tight ${
+                          isSelected ? 'text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-200'
+                        }`}>
+                          {preset.name}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(preset.id);
+                          }}
+                          className={`p-1 rounded-md transition-colors ${favorites.includes(preset.id) ? 'bg-amber-500 text-black' : 'bg-zinc-800/70 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'}`}
+                          aria-label={favorites.includes(preset.id) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <StarIcon filled={favorites.includes(preset.id)} />
+                        </button>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors[preset.type]}`}>
+                          {typeBadge[preset.type]}
+                        </span>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">{preset.description}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-zinc-800/50">
+              <div className="px-3 pt-3 pb-1">
+                <SectionHeader title="Tone" icon={<ToneIcon />} />
+              </div>
+              <div className="px-3 pb-2 space-y-1.5">
+                <SliderControl label="White Balance" value={eff.whiteBalance} min={-1} max={1} step={0.05}
+                  defaultValue={selectedPreset.whiteBalance} onChange={setWhiteBalance} format={(v) => v > 0 ? `+${(v * 100).toFixed(0)}% Warm` : v < 0 ? `${(v * 100).toFixed(0)}% Cool` : 'Neutral'} icon={<WhiteBalanceIcon />} />
+                <SliderControl label="Exposure" value={exposure} min={-2} max={2} step={0.05}
+                  defaultValue={0} onChange={(v) => setExposure(v ?? 0)} format={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} EV`} icon={<ExposureIcon />} />
+                <SliderControl label="Contrast" value={eff.contrast} min={-0.5} max={0.5} step={0.01}
+                  defaultValue={selectedPreset.contrast} onChange={setContrastAmount} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} icon={<ContrastIcon />} />
+                <SliderControl label="Brightness" value={eff.brightness} min={-0.3} max={0.3} step={0.01}
+                  defaultValue={selectedPreset.brightness} onChange={setBrightnessAmount} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} icon={<BrightnessIcon />} />
+              </div>
+              <div className="px-3 pb-2 space-y-1.5">
+                <SliderControl label="Saturation" value={eff.saturation} min={0} max={2} step={0.01}
+                  defaultValue={selectedPreset.saturation} onChange={setSaturationAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<SaturationIcon />} />
+                <SliderControl label="Faded Blacks" value={eff.fadedBlacks} min={0} max={0.25} step={0.005}
+                  defaultValue={selectedPreset.fadedBlacks} onChange={setFadedBlacks} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<FadedBlacksIcon />} />
+              </div>
+
+              <div className="px-3 pt-1 pb-1 flex items-center justify-between">
+                <SectionHeader title="Film Grain" icon={<GrainIcon />} />
+                <button
+                  onClick={() => setGrainSeed(Math.floor(Math.random() * 100000))}
+                  className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-amber-400 transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800/60"
+                  title="Randomize grain pattern"
+                >
+                  <DiceIcon /> New Pattern
+                </button>
+              </div>
+              <div className="px-3 pb-2 space-y-1.5">
+                <SliderControl label="Amount" value={eff.grainAmount} min={0} max={1} step={0.01}
+                  defaultValue={selectedPreset.grainAmount} onChange={setGrainAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
+                <SliderControl label="Size" value={eff.grainSize} min={0.3} max={5} step={0.1}
+                  defaultValue={selectedPreset.grainSize} onChange={setGrainSize} format={(v) => v.toFixed(1)} icon={<GrainIconSmall />} />
+                <SliderControl label="Roughness" value={eff.grainRoughness} min={0} max={1} step={0.01}
+                  defaultValue={selectedPreset.grainRoughness} onChange={setGrainRoughness} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
+              </div>
+
+              <div className="px-3 pt-1 pb-1">
+                <SectionHeader title="Effects" icon={<EffectsIcon />} />
+              </div>
+              <div className="px-3 pb-2 space-y-1.5">
+                <SliderControl label="Vignette" value={eff.vignette} min={0} max={0.6} step={0.01}
+                  defaultValue={selectedPreset.vignette} onChange={setVignetteAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<VignetteIcon />} />
+                <SliderControl label="Halation" value={eff.halation} min={0} max={0.8} step={0.01}
+                  defaultValue={selectedPreset.halation} onChange={setHalationAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<HalationIcon />} />
+              </div>
+
+              <div className="px-3 pt-1 pb-1">
+                <SectionHeader title="Optical Effects" icon={<OpticalIcon />} />
+              </div>
+              <div className="px-3 pb-3 space-y-1.5">
+                <SliderControl label="Purple Fringing" value={eff.purpleFringing} min={0} max={1} step={0.01}
+                  defaultValue={selectedPreset.purpleFringing} onChange={setPurpleFringing} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<PurpleFringingIcon />} />
+                <SliderControl label="Lens Distortion" value={eff.lensDistortion} min={0} max={0.5} step={0.01}
+                  defaultValue={selectedPreset.lensDistortion} onChange={setLensDistortion} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<LensDistortionIcon />} />
+                <SliderControl label="Color Shift X" value={eff.colorShiftX} min={-1} max={1} step={0.05}
+                  defaultValue={selectedPreset.colorShiftX} onChange={setColorShiftX} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<ColorShiftIcon />} />
+                <SliderControl label="Color Shift Y" value={eff.colorShiftY} min={-1} max={1} step={0.05}
+                  defaultValue={selectedPreset.colorShiftY} onChange={setColorShiftY} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<ColorShiftIcon />} />
+              </div>
+
+              <div className="px-3 pt-1 pb-1">
+                <SectionHeader title="Overlays" icon={<OverlayIcon />} />
+              </div>
+              <div className="px-3 pb-2">
+                <div className="flex gap-1 mb-2">
+                  {(Object.keys(OVERLAYS) as Array<'lightleaks' | 'bokeh' | 'textures'>).map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setOverlayCategory(cat)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                        overlayCategory === cat
+                          ? 'bg-zinc-700 text-zinc-100'
+                          : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                      }`}
+                    >
+                      {OVERLAYS[cat].label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-5 gap-1">
+                  <button
+                    onClick={() => setSelectedOverlay(null)}
+                    className={`aspect-square rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
+                      !selectedOverlay
+                        ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
+                        : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-300 border-zinc-700/50 hover:border-zinc-500'
+                    }`}
+                  >
+                    None
+                  </button>
+                  {OVERLAYS[overlayCategory].thumbs.map((thumb, i) => {
+                    const url = OVERLAYS[overlayCategory].urls[i];
+                    const isSelected = selectedOverlay === url;
+                    return (
+                      <button
+                        key={url}
+                        onClick={() => {
+                          setSelectedOverlay(url);
+                          if (!isSelected) setOverlayBlend(OVERLAYS[overlayCategory].defaultBlend);
+                        }}
+                        className={`aspect-square rounded overflow-hidden transition-all border ${
+                          isSelected
+                            ? 'border-amber-500 ring-1 ring-amber-500/40'
+                            : 'border-zinc-700/50 hover:border-zinc-500'
+                        }`}
+                      >
+                        <img src={thumb} className="w-full h-full object-cover" alt="" />
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedOverlay && (
+                  <div className="mt-2 space-y-1.5">
+                    <SliderControl
+                      label="Opacity"
+                      value={overlayOpacity}
+                      min={0} max={1} step={0.01}
+                      defaultValue={0.6}
+                      onChange={(v) => setOverlayOpacity(v ?? 0.6)}
+                      format={(v) => `${Math.round(v * 100)}%`}
+                    />
+                    <div className="flex flex-wrap gap-1">
+                      {BLEND_MODES.map((mode) => (
+                        <button
+                          key={mode.value}
+                          onClick={() => setOverlayBlend(mode.value)}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-all ${
+                            overlayBlend === mode.value
+                              ? 'bg-amber-500 text-black'
+                              : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          }`}
+                        >
+                          {mode.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-3 pt-1 pb-1">
+                <SectionHeader title="Frame" icon={<FrameIcon />} />
+              </div>
+              <div className="px-3 pb-3 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  {['none', 'white', 'black'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setFrameColor(color as FrameColor)}
+                      className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wide transition ${
+                        frameColor === color
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+                {frameColor !== 'none' && (
+                  <SliderControl
+                    label="Frame Thickeness"
+                    value={frameThickness}
+                    min={0}
+                    max={20}
+                    step={1}
+                    defaultValue={8}
+                    onChange={(v) => setFrameThickness(v ?? 0)}
+                    format={(v) => `${Math.round(v)}%`}
+                  />
+                )}
+              </div>
+
+              <div className="px-3 pt-1 pb-1">
+                <SectionHeader title="Film Frame" icon={<FrameIcon />} />
+              </div>
+              <div className="px-3 pb-3">
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    onClick={() => setSelectedFrame(null)}
+                    className={`aspect-[3/2] rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
+                      !selectedFrame
+                        ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
+                        : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-300 border-zinc-700/50 hover:border-zinc-500'
+                    }`}
+                  >
+                    None
+                  </button>
+                  {FRAME_URLS.map((url, i) => (
+                    <button
+                      key={url}
+                      onClick={() => setSelectedFrame(url)}
+                      className={`aspect-[3/2] rounded overflow-hidden transition-all border ${
+                        selectedFrame === url
+                          ? 'border-amber-500 ring-1 ring-amber-500/40'
+                          : 'border-zinc-700/50 hover:border-zinc-500'
+                      }`}
+                    >
+                      <img src={url} className="w-full h-full object-cover opacity-80" alt={`Frame ${i + 1}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="px-3 pt-1 pb-1">
+                <SectionHeader title="Crop & Rotate" icon={<CropIcon />} />
+              </div>
+              <div className="px-3 pb-3 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {['original', '1:1', '4:3', '16:9'].map((ratio) => (
+                    <button
+                      key={ratio}
+                      onClick={() => {
+                        setCropRatio(ratio as CropRatio);
+                        setCropMode(true);
+                      }}
+                      className={`px-2 py-1 rounded-md text-[10px] transition-all ${cropRatio === ratio ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                    >
+                      {ratio.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-zinc-500 leading-snug">
+                  Pick a ratio and enter crop mode. Drag the overlay on the canvas to reposition the crop before applying.
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setCropMode(true)}
+                    className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${cropMode ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                  >
+                    {cropMode ? 'Crop Mode Active' : 'Start Crop'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCropMode(false);
+                      setCropRect(null);
+                    }}
+                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    Cancel Crop
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => applyRotation(-90)}
+                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    Rotate Left
+                  </button>
+                  <button
+                    onClick={() => applyRotation(90)}
+                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    Rotate Right
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={applyCrop}
+                    disabled={!cropMode || !cropRect}
+                    className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-colors ${cropMode && cropRect ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
+                  >
+                    Apply Crop
+                  </button>
+                  <button
+                    onClick={resetTransform}
+                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    Reset Transform
+                  </button>
+                </div>
+              </div>
+
+              {hasOverrides && (
+                <div className="px-3 pb-3">
+                  <button
+                    onClick={resetOverrides}
+                    className="w-full py-1.5 rounded-lg text-[11px] text-zinc-500 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-800/60 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <ResetIcon /> Reset All to Preset Defaults
+                  </button>
+                </div>
+              )}
+              <div className="border-t border-zinc-800/50 px-3 py-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <SectionHeader title="Custom Preset" icon={<PresetIcon />} />
+                  {selectedPreset.id.startsWith('custom-') && (
+                    <button
+                      onClick={() => deleteCustomPreset(selectedPreset.id)}
+                      className="text-[10px] uppercase tracking-[0.2em] text-amber-400 hover:text-amber-200"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+                <input
+                  value={customPresetName}
+                  onChange={(e) => setCustomPresetName(e.target.value)}
+                  placeholder="Preset name"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 outline-none"
+                />
+                <input
+                  value={customPresetDescription}
+                  onChange={(e) => setCustomPresetDescription(e.target.value)}
+                  placeholder="Description"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 outline-none"
+                />
+                <button
+                  onClick={handleSaveCustomPreset}
+                  className="w-full py-2 rounded-lg bg-amber-500 text-black font-semibold hover:bg-amber-400 transition-colors"
+                >
+                  Save Preset
+                </button>
+              </div>
+              <div className="border-t border-zinc-800/50 px-3 py-3">
+                <button
+                  onClick={() => setIsAboutOpen(true)}
+                  className="w-full text-center px-3 py-2 rounded-lg bg-zinc-800 text-zinc-100 hover:bg-amber-500 hover:text-zinc-950 transition-all text-sm font-semibold"
+                >
+                  About App
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <main
+          ref={mainAreaRef}
+          className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-hidden"
+        >
+          {!image ? (
+            <div className="flex flex-col items-center gap-6 max-w-lg px-6">
+              <div
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-amber-500/60', 'bg-amber-500/5'); }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove('border-amber-500/60', 'bg-amber-500/5'); }}
+                onDrop={(e) => { e.currentTarget.classList.remove('border-amber-500/60', 'bg-amber-500/5'); handleDrop(e); }}
+                onClick={() => fileInputRef.current?.click()}
+                className="cursor-pointer flex flex-col items-center gap-3 p-10 border-2 border-dashed border-zinc-800 rounded-2xl hover:border-amber-500/40 hover:bg-zinc-900/30 transition-all w-full group"
+              >
+                <div className="text-zinc-700 group-hover:text-amber-500/60 transition-colors">
+                  <UploadIcon />
+                </div>
+                <div className="text-center">
+                  <p className="text-zinc-300 font-medium text-sm">Drop an image or click to upload</p>
+                  <p className="text-zinc-700 text-xs mt-1">JPG, PNG, WebP — max 1600px</p>
+                </div>
+              </div>
+
+              <div className="w-full">
+                <p className="text-[10px] text-zinc-700 uppercase tracking-widest text-center mb-2">or try a sample</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {DEMO_IMAGES.map((demo) => (
+                    <button
+                      key={demo.label}
+                      onClick={() => handleDemo(demo.url)}
+                      disabled={loadingDemo}
+                      className="aspect-[4/3] rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-all overflow-hidden group relative"
+                    >
+                      <img
+                        src={demo.url.replace('w=1200', 'w=200')}
+                        alt={demo.label}
+                        className="w-full h-full object-cover opacity-60 group-hover:opacity-90 transition-opacity"
+                        crossOrigin="anonymous"
+                      />
+                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] text-white/80 font-medium bg-black/50 px-1.5 py-0.5 rounded">
+                        {demo.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {loadingDemo && (
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs text-zinc-500">Loading image...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : splitView ? (
+            <div
+              ref={splitContainerRef}
+              className="relative w-full h-full flex items-center justify-center select-none"
+              style={{ backgroundColor: frameBackground, padding: framePadding }}
+              onMouseMove={(e) => handleSplitMove(e.clientX)}
+              onMouseUp={() => setDraggingSplit(false)}
+              onMouseLeave={() => setDraggingSplit(false)}
+              onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
+              onTouchEnd={() => setDraggingSplit(false)}
+            >
+              <div className="relative inline-block max-w-full max-h-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+                <canvas ref={originalCanvasRef} className="max-w-full max-h-[calc(100vh-52px)] object-contain block" />
+                <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}>
+                  <canvas ref={canvasRef} className="max-w-full max-h-[calc(100vh-52px)] object-contain block" />
+                </div>
+                <div
+                  className="absolute top-0 bottom-0 cursor-col-resize z-10"
+                  style={{ left: `${splitPos}%`, transform: 'translateX(-50%)', width: '32px' }}
+                  onMouseDown={() => setDraggingSplit(true)}
+                  onTouchStart={() => setDraggingSplit(true)}
+                >
+                  <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px bg-white/60" />
+                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white shadow-xl flex items-center justify-center">
+                    <span className="text-zinc-700 text-[10px] font-bold">⇔</span>
+                  </div>
+                </div>
+                <div className="absolute top-2 left-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">Original</div>
+                <div className="absolute top-2 right-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">{selectedPreset.name}</div>
+                {selectedOverlay && (
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)`, mixBlendMode: activeOverlayBlend }}>
+                    <img
+                      src={selectedOverlay}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ objectFit: 'cover', opacity: overlayOpacity, mixBlendMode: activeOverlayBlend }}
+                      alt=""
+                    />
+                  </div>
+                )}
+                {selectedFrame && (
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}>
+                    <img
+                      src={selectedFrame}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ objectFit: 'cover' }}
+                      alt=""
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="relative flex items-center justify-center w-full h-full"
+              onMouseDown={() => setShowOriginal(true)}
+              onMouseUp={() => setShowOriginal(false)}
+              onMouseLeave={() => setShowOriginal(false)}
+              onTouchStart={() => setShowOriginal(true)}
+              onTouchEnd={() => setShowOriginal(false)}
+              onTouchCancel={() => setShowOriginal(false)}
+            >
+              <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding }}>
+                <div className="relative inline-block max-w-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+                  <canvas
+                    ref={canvasRef}
+                    className={`block max-w-full max-h-[calc(100vh-52px)] shadow-2xl ${
+                      showOriginal ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                    style={{ imageRendering: 'auto' }}
+                  />
+                  {cropMode && cropRect && (
+                    <div className="absolute inset-0 pointer-events-auto">
+                      <div className="absolute left-0 top-0 right-0 pointer-events-none" style={{ height: `${cropRect.y * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div className="absolute left-0 right-0 pointer-events-none" style={{ top: `${(cropRect.y + cropRect.h) * 100}%`, height: `${(1 - cropRect.y - cropRect.h) * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div className="absolute left-0 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${cropRect.x * 100}%`, height: `${cropRect.h * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div className="absolute right-0 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${(1 - cropRect.x - cropRect.w) * 100}%`, height: `${cropRect.h * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+                      <div
+                        className="absolute border border-amber-400 bg-transparent cursor-move"
+                        style={{ left: `${cropRect.x * 100}%`, top: `${cropRect.y * 100}%`, width: `${cropRect.w * 100}%`, height: `${cropRect.h * 100}%` }}
+                        onPointerDown={onCropPointerDown('move')}
+                        onPointerMove={onCropPointerMove}
+                        onPointerUp={onCropPointerUp}
+                        onPointerLeave={onCropPointerUp}
+                      >
+                        <div className={`absolute inset-0 ${draggingCrop ? 'ring-2 ring-amber-400/70' : ''}`} />
+                        {['nw', 'ne', 'sw', 'se'].map((handle) => {
+                          const positions: Record<string, string> = {
+                            nw: 'top-0 left-0',
+                            ne: 'top-0 right-0',
+                            sw: 'bottom-0 left-0',
+                            se: 'bottom-0 right-0',
+                          };
+                          const cursors: Record<string, string> = {
+                            nw: 'cursor-nwse-resize',
+                            ne: 'cursor-nesw-resize',
+                            sw: 'cursor-nesw-resize',
+                            se: 'cursor-nwse-resize',
+                          };
+                          return (
+                            <div
+                              key={handle}
+                              className={`${positions[handle]} absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 border border-white ${cursors[handle]}`}
+                              onPointerDown={onCropPointerDown(handle as any)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {!showOriginal && selectedOverlay && (
+                    <img
+                      src={selectedOverlay}
+                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      style={{ objectFit: 'cover', opacity: overlayOpacity, mixBlendMode: activeOverlayBlend }}
+                      alt=""
+                    />
+                  )}
+                  {!showOriginal && selectedFrame && (
+                    <img
+                      src={selectedFrame}
+                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      style={{ objectFit: 'cover' }}
+                      alt=""
+                    />
+                  )}
+                </div>
+                {showOriginal && imageData && <OriginalOverlay imageData={imageData} zoom={zoom} />}
+              </div>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                handleBatchFiles(files);
+              }
+            }}
+            className="hidden"
+          />
+
+          {processing && image && (
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-zinc-900/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-zinc-800/50">
+              <div className="w-3 h-3 border-[1.5px] border-amber-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-[10px] text-zinc-500">Processing</span>
+            </div>
+          )}
+
+          {image && !splitView && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2.5 bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/50 rounded-xl px-3 py-1.5 text-[11px] whitespace-nowrap">
+              <span className={`px-1.5 py-0.5 rounded border font-medium text-[9px] ${typeColors[selectedPreset.type]}`}>
+                {typeBadge[selectedPreset.type]}
+              </span>
+              <span className="font-semibold text-zinc-200 truncate">{selectedPreset.brand} {selectedPreset.name}</span>
+              <span className="text-zinc-700">|</span>
+              <span className="text-zinc-600">{Math.round(zoom * 100)}%</span>
+              <span className="text-zinc-700">|</span>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-zinc-500 hover:text-amber-400 transition-colors font-medium"
+              >
+                Change
+              </button>
+            </div>
+          )}
+        </main>
+
+        {isAboutOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-950 p-6 text-zinc-100 shadow-xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold">About FilmLab</h2>
+                  <p className="mt-2 text-sm text-zinc-400">Quickstart & info</p>
+                </div>
+                <button
+                  onClick={() => setIsAboutOpen(false)}
+                  className="text-zinc-400 hover:text-zinc-100 text-sm font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="mt-4 space-y-3 text-sm leading-relaxed">
+                <p>FilmLab is an in-browser analog film emulator. Upload a photo, pick a preset, and adjust tone, grain, and effects.</p>
+                <ul className="list-disc list-inside space-y-1 text-zinc-300">
+                  <li>Upload or drag & drop an image.</li>
+                  <li>Select film stock on the left.</li>
+                  <li>Use sliders to tweak exposure, contrast, grain, and more.</li>
+                  <li>Use Compare and hold Original for before/after preview.</li>
+                  <li>Export as JPG when ready.</li>
+                </ul>
+                <a
+                  href="https://nefas.tv"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 px-3 py-2 rounded-lg bg-zinc-800 text-zinc-100 hover:bg-amber-500 hover:text-zinc-950 transition-all text-sm font-semibold"
+                >
+                  Author Website
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <FramingTool isOpen={state.framingToolOpen} onClose={() => state.setFramingToolOpen(false)} />
+      </div>
+    </div>
+  );
+}
