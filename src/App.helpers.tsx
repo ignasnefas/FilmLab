@@ -28,6 +28,7 @@ export const typeLabels: Record<string, string> = {
   'bw-negative': 'B&W',
   slide: 'Slide',
   cinema: 'Cine',
+  custom: 'My Presets',
 };
 
 export const typeColors: Record<string, string> = {

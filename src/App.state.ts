@@ -46,7 +46,7 @@ export function useFilmLabState() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [redoStack, setRedoStack] = useState<HistoryEntry[]>([]);
-  const [filterType, setFilterType] = useState<'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema' | 'custom'>('all');
   const [processing, setProcessing] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [splitView, setSplitView] = useState(false);
@@ -872,15 +872,16 @@ export function useFilmLabState() {
     setLevelsOutputWhite(null);
   }, []);
 
-  const customPresetItems = useMemo(() => customPresets.filter((preset) => (
-    (filterType === 'all' || preset.type === filterType) &&
-    (!showFavoritesOnly || favorites.includes(preset.id))
-  )), [customPresets, filterType, showFavoritesOnly, favorites]);
+  const customPresetItems = useMemo(() => customPresets.filter((preset) => {
+    if (showFavoritesOnly && !favorites.includes(preset.id)) return false;
+    return filterType === 'custom' || (filterType === 'all' && showFavoritesOnly);
+  }), [customPresets, filterType, showFavoritesOnly, favorites]);
 
-  const filteredPresets = useMemo(() => filmPresets.filter((preset) => (
-    (filterType === 'all' || preset.type === filterType) &&
-    (!showFavoritesOnly || favorites.includes(preset.id))
-  )), [filterType, showFavoritesOnly, favorites]);
+  const filteredPresets = useMemo(() => filmPresets.filter((preset) => {
+    if (showFavoritesOnly && !favorites.includes(preset.id)) return false;
+    if (filterType === 'custom') return false;
+    return filterType === 'all' || preset.type === filterType;
+  }), [filterType, showFavoritesOnly, favorites]);
 
   const displayedPresets = useMemo(() => [...customPresetItems, ...filteredPresets], [customPresetItems, filteredPresets]);
 

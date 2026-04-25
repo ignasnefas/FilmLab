@@ -196,7 +196,23 @@ export default function AppLayout() {
     framingToolOpen,
   } = state;
 
-  const presetCountLabel = useMemo(() => `${currentPresetIndex + 1}/${filteredPresets.length}`, [currentPresetIndex, filteredPresets.length]);
+  const presetCountLabel = useMemo(() => `${currentPresetIndex + 1}/${displayedPresets.length}`, [currentPresetIndex, displayedPresets.length]);
+
+  const presetCategories = ['all', 'color-negative', 'bw-negative', 'slide', 'cinema', 'custom', 'favorites'] as const;
+  const activeCategory = showFavoritesOnly ? 'favorites' : filterType;
+
+  const selectPresetCategory = (category: typeof presetCategories[number]) => {
+    if (category === 'favorites') {
+      setFilterType('all');
+      setShowFavoritesOnly(true);
+    } else if (category === 'custom') {
+      setFilterType('custom');
+      setShowFavoritesOnly(false);
+    } else {
+      setFilterType(category);
+      setShowFavoritesOnly(false);
+    }
+  };
 
   return (
     <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden">
@@ -355,31 +371,6 @@ export default function AppLayout() {
                 />
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1">
-              {(Object.keys(typeLabels) as Array<'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema'>).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-                    filterType === type
-                      ? 'bg-zinc-700/80 text-zinc-100 shadow-sm'
-                      : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
-                  }`}
-                >
-                  {typeLabels[type]}
-                </button>
-              ))}
-              <button
-                onClick={() => setShowFavoritesOnly((prev) => !prev)}
-                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-                  showFavoritesOnly
-                    ? 'bg-amber-500 text-black shadow-sm'
-                    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
-                }`}
-              >
-                {showFavoritesOnly ? '★ Favorites' : 'Favorites'}
-              </button>
-            </div>
             <div className="mt-3 px-1 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                 <span>Batch ({batchImages.length})</span>
@@ -430,35 +421,31 @@ export default function AppLayout() {
             </div>
           </div>
 
-          {customPresetItems.length > 0 && (
-            <div className="px-3 py-3 border-b border-zinc-800/40 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">My Presets</div>
-                <button
-                  onClick={() => setShowFavoritesOnly(false)}
-                  className="px-2 py-1 rounded-md text-[10px] uppercase tracking-[0.15em] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors"
-                >
-                  Reset Filter
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {customPresetItems.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => selectPreset(preset)}
-                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-left text-white hover:border-amber-500 transition-colors"
-                  >
-                    <div className="text-sm font-semibold truncate">{preset.name}</div>
-                    <div className="text-[10px] text-zinc-500 truncate">{preset.description}</div>
-                  </button>
-                ))}
-              </div>
+          <div className="px-3 py-3 border-b border-zinc-800/40 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Presets</div>
             </div>
-          )}
+            <div className="flex flex-wrap gap-2">
+              {presetCategories.map((category) => {
+                const label = category === 'favorites' ? 'Favorites' : typeLabels[category];
+                const isActive = activeCategory === category;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => selectPresetCategory(category)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.18em] transition-colors border ${isActive ? 'bg-amber-500 text-black border-amber-500' : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100'}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             <div className="px-2 py-1.5 space-y-0.5">
-              {filteredPresets.map((preset) => {
+              {displayedPresets.map((preset) => {
                 const isSelected = selectedPreset.id === preset.id;
                 return (
                   <div
@@ -507,6 +494,21 @@ export default function AppLayout() {
                         >
                           <StarIcon filled={favorites.includes(preset.id)} />
                         </button>
+                        {(preset.brand === 'My Presets' || preset.id.startsWith('custom-')) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete custom preset '${preset.name}'?`)) {
+                                deleteCustomPreset(preset.id);
+                              }
+                            }}
+                            className="p-1 rounded-md bg-zinc-800/70 text-zinc-400 hover:bg-red-500 hover:text-white transition-colors"
+                            aria-label="Delete custom preset"
+                          >
+                            ×
+                          </button>
+                        )}
                         <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors[preset.type]}`}>
                           {typeBadge[preset.type]}
                         </span>
