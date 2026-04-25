@@ -47,6 +47,31 @@ const StarIcon = ({ filled }: { filled?: boolean }) => (
   </svg>
 );
 
+interface BatchImageEditState {
+  selectedPreset: FilmPreset;
+  frameColor: 'none' | 'white' | 'black';
+  frameThickness: number;
+  selectedOverlay: string | null;
+  overlayOpacity: number;
+  overlayBlend: BlendMode;
+  selectedFrame: string | null;
+  grainAmount: number | null;
+  grainSize: number | null;
+  grainRoughness: number | null;
+  vignetteAmount: number | null;
+  halationAmount: number | null;
+  contrastAmount: number | null;
+  saturationAmount: number | null;
+  brightnessAmount: number | null;
+  fadedBlacks: number | null;
+  exposure: number;
+  purpleFringing: number | null;
+  lensDistortion: number | null;
+  colorShiftX: number | null;
+  colorShiftY: number | null;
+  whiteBalance: number | null;
+}
+
 interface BatchImage {
   id: string;
   file?: File;
@@ -55,6 +80,7 @@ interface BatchImage {
   height: number;
   name: string;
   data: ImageData;
+  editState: BatchImageEditState;
 }
 
 interface CropRect {
@@ -358,6 +384,54 @@ export default function App() {
   const [whiteBalance, setWhiteBalance] = useState<number | null>(null);
   const [processedImageData, setProcessedImageData] = useState<ImageData | null>(null);
 
+  const getCurrentBatchEditState = useCallback((): BatchImageEditState => ({
+    selectedPreset,
+    frameColor,
+    frameThickness,
+    selectedOverlay,
+    overlayOpacity,
+    overlayBlend,
+    selectedFrame,
+    grainAmount,
+    grainSize,
+    grainRoughness,
+    vignetteAmount,
+    halationAmount,
+    contrastAmount,
+    saturationAmount,
+    brightnessAmount,
+    fadedBlacks,
+    exposure,
+    purpleFringing,
+    lensDistortion,
+    colorShiftX,
+    colorShiftY,
+    whiteBalance,
+  }), [
+    selectedPreset,
+    frameColor,
+    frameThickness,
+    selectedOverlay,
+    overlayOpacity,
+    overlayBlend,
+    selectedFrame,
+    grainAmount,
+    grainSize,
+    grainRoughness,
+    vignetteAmount,
+    halationAmount,
+    contrastAmount,
+    saturationAmount,
+    brightnessAmount,
+    fadedBlacks,
+    exposure,
+    purpleFringing,
+    lensDistortion,
+    colorShiftX,
+    colorShiftY,
+    whiteBalance,
+  ]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -573,11 +647,33 @@ export default function App() {
     setImage(img);
     setImageData(entry.data);
     originalImageDataRef.current = entry.data;
+    setSelectedPreset(entry.editState.selectedPreset);
+    setFrameColor(entry.editState.frameColor);
+    setFrameThickness(entry.editState.frameThickness);
+    setSelectedOverlay(entry.editState.selectedOverlay);
+    setOverlayOpacity(entry.editState.overlayOpacity);
+    setOverlayBlend(entry.editState.overlayBlend);
+    setSelectedFrame(entry.editState.selectedFrame);
+    setGrainAmount(entry.editState.grainAmount);
+    setGrainSize(entry.editState.grainSize);
+    setGrainRoughness(entry.editState.grainRoughness);
+    setVignetteAmount(entry.editState.vignetteAmount);
+    setHalationAmount(entry.editState.halationAmount);
+    setContrastAmount(entry.editState.contrastAmount);
+    setSaturationAmount(entry.editState.saturationAmount);
+    setBrightnessAmount(entry.editState.brightnessAmount);
+    setFadedBlacks(entry.editState.fadedBlacks);
+    setExposure(entry.editState.exposure);
+    setPurpleFringing(entry.editState.purpleFringing);
+    setLensDistortion(entry.editState.lensDistortion);
+    setColorShiftX(entry.editState.colorShiftX);
+    setColorShiftY(entry.editState.colorShiftY);
+    setWhiteBalance(entry.editState.whiteBalance);
     setHistory([]);
     setRedoStack([]);
     setCropMode(false);
     setCropRect(null);
-  }, []);
+  }, [getCurrentBatchEditState]);
 
   const handleBatchFiles = useCallback((files: FileList | File[]) => {
     Array.from(files).forEach((file) => {
@@ -611,6 +707,7 @@ export default function App() {
             height: h,
             name: file.name,
             data,
+            editState: getCurrentBatchEditState(),
           });
         };
         img.src = result;
@@ -645,6 +742,7 @@ export default function App() {
         height: h,
         name: 'Sample',
         data,
+        editState: getCurrentBatchEditState(),
       });
       setLoadingDemo(false);
     };
@@ -663,7 +761,35 @@ export default function App() {
   const selectBatchImage = useCallback((index: number) => {
     const entry = batchImages[index];
     if (!entry) return;
+
+    if (activeBatchIndex !== null) {
+      setBatchImages((prev) => prev.map((item, idx) => idx === activeBatchIndex ? { ...item, editState: getCurrentBatchEditState() } : item));
+    }
+
     setActiveBatchIndex(index);
+    setSelectedPreset(entry.editState.selectedPreset);
+    setFrameColor(entry.editState.frameColor);
+    setFrameThickness(entry.editState.frameThickness);
+    setSelectedOverlay(entry.editState.selectedOverlay);
+    setOverlayOpacity(entry.editState.overlayOpacity);
+    setOverlayBlend(entry.editState.overlayBlend);
+    setSelectedFrame(entry.editState.selectedFrame);
+    setGrainAmount(entry.editState.grainAmount);
+    setGrainSize(entry.editState.grainSize);
+    setGrainRoughness(entry.editState.grainRoughness);
+    setVignetteAmount(entry.editState.vignetteAmount);
+    setHalationAmount(entry.editState.halationAmount);
+    setContrastAmount(entry.editState.contrastAmount);
+    setSaturationAmount(entry.editState.saturationAmount);
+    setBrightnessAmount(entry.editState.brightnessAmount);
+    setFadedBlacks(entry.editState.fadedBlacks);
+    setExposure(entry.editState.exposure);
+    setPurpleFringing(entry.editState.purpleFringing);
+    setLensDistortion(entry.editState.lensDistortion);
+    setColorShiftX(entry.editState.colorShiftX);
+    setColorShiftY(entry.editState.colorShiftY);
+    setWhiteBalance(entry.editState.whiteBalance);
+
     const img = new Image();
     img.src = entry.url;
     setImage(img);
@@ -673,7 +799,13 @@ export default function App() {
     setRedoStack([]);
     setCropMode(false);
     setCropRect(null);
-  }, [batchImages]);
+  }, [activeBatchIndex, batchImages, getCurrentBatchEditState]);
+
+  useEffect(() => {
+    if (activeBatchIndex === null) return;
+    const editState = getCurrentBatchEditState();
+    setBatchImages((prev) => prev.map((entry, idx) => idx === activeBatchIndex ? { ...entry, editState } : entry));
+  }, [activeBatchIndex, getCurrentBatchEditState]);
 
   const createSnapshot = useCallback((): HistoryEntry | null => {
     if (!imageData) return null;
@@ -771,20 +903,39 @@ export default function App() {
     if (batchImages.length === 0) return;
     setProcessing(true);
     for (const entry of batchImages) {
-      const result = processImage(entry.data, selectedPreset, currentParams, grainSeed);
+      const editState = entry.editState || getCurrentBatchEditState();
+      const params: ProcessingParams = {
+        grainAmountOverride: editState.grainAmount ?? undefined,
+        grainSizeOverride: editState.grainSize ?? undefined,
+        grainRoughnessOverride: editState.grainRoughness ?? undefined,
+        vignetteOverride: editState.vignetteAmount ?? undefined,
+        halationOverride: editState.halationAmount ?? undefined,
+        contrastOverride: editState.contrastAmount ?? undefined,
+        saturationOverride: editState.saturationAmount ?? undefined,
+        brightnessOverride: editState.brightnessAmount ?? undefined,
+        fadedBlacksOverride: editState.fadedBlacks ?? undefined,
+        exposureCompensation: editState.exposure,
+        purpleFringingOverride: editState.purpleFringing ?? undefined,
+        lensDistortionOverride: editState.lensDistortion ?? undefined,
+        colorShiftXOverride: editState.colorShiftX ?? undefined,
+        colorShiftYOverride: editState.colorShiftY ?? undefined,
+        whiteBalanceOverride: editState.whiteBalance ?? undefined,
+      };
+
+      const result = processImage(entry.data, editState.selectedPreset, params, grainSeed);
       const canvas = document.createElement('canvas');
       canvas.width = result.width;
       canvas.height = result.height;
       canvas.getContext('2d')!.putImageData(result, 0, 0);
       const link = document.createElement('a');
       const name = entry.file?.name.replace(/\.[^/.]+$/, '') || entry.name || 'batch-image';
-      link.download = `${name}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
+      link.download = `${name}-${editState.selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
       link.href = canvas.toDataURL('image/jpeg', 0.92);
       link.click();
       await new Promise((resolve) => setTimeout(resolve, 180));
     }
     setProcessing(false);
-  }, [batchImages, selectedPreset, currentParams, grainSeed]);
+  }, [batchImages, getCurrentBatchEditState, grainSeed]);
 
   useEffect(() => {
     saveToStorage(PRESET_STORAGE_KEY, customPresets);
@@ -1379,7 +1530,7 @@ export default function App() {
                   )}
                 </div>
               </div>
-              {batchImages.length > 0 && (
+              {batchImages.length > 1 && (
                 <>
                   <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                     <span>Current Batch</span>
