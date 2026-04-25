@@ -733,19 +733,15 @@ export default function App() {
   const frameBackground = frameColor === 'white' ? '#ffffff' : frameColor === 'black' ? '#000000' : 'transparent';
   const framePadding = frameColor !== 'none' ? `${frameThickness}%` : '0';
 
-  // Optimized processing with adaptive debounce
+  // Optimized processing with debounce to keep slider dragging responsive.
   useEffect(() => {
     if (!imageData || !canvasRef.current) return;
 
     if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
 
-    setProcessing(true);
-    setProcessedImageData((prev) => prev ?? imageData);
-
-    // Adaptive debounce: 40ms for fast feedback, increases slightly for slower interactions
-    const debounceDelay = 45;
-
+    const debounceDelay = 80;
     processTimeoutRef.current = setTimeout(() => {
+      setProcessing(true);
       requestAnimationFrame(() => {
         const t0 = performance.now();
         const result = processImage(imageData, selectedPreset, currentParams, grainSeed);
@@ -753,12 +749,10 @@ export default function App() {
         setProcessTime(Math.round(elapsed));
 
         const canvas = canvasRef.current!;
-        if (canvas) {
-          canvas.width = result.width;
-          canvas.height = result.height;
-          const ctx = canvas.getContext('2d')!;
-          ctx.putImageData(result, 0, 0);
-        }
+        canvas.width = result.width;
+        canvas.height = result.height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.putImageData(result, 0, 0);
 
         // Cache processed image data for split view and fast switching
         setProcessedImageData(result);
@@ -1580,31 +1574,9 @@ export default function App() {
   const levelsHistogram = useMemo(() => {
     if (!imageData) return null;
 
-    const histogramSource = processImage(imageData, selectedPreset, {
-      grainAmountOverride: grainAmount ?? undefined,
-      grainSizeOverride: grainSize ?? undefined,
-      grainRoughnessOverride: grainRoughness ?? undefined,
-      vignetteOverride: vignetteAmount ?? undefined,
-      halationOverride: halationAmount ?? undefined,
-      contrastOverride: contrastAmount ?? undefined,
-      saturationOverride: saturationAmount ?? undefined,
-      brightnessOverride: brightnessAmount ?? undefined,
-      fadedBlacksOverride: fadedBlacks ?? undefined,
-      exposureCompensation: exposure,
-      purpleFringingOverride: purpleFringing ?? undefined,
-      lensDistortionOverride: lensDistortion ?? undefined,
-      colorShiftXOverride: colorShiftX ?? undefined,
-      colorShiftYOverride: colorShiftY ?? undefined,
-      whiteBalanceOverride: whiteBalance ?? undefined,
-      levelsInputBlackOverride: selectedPreset.levelsInputBlack ?? 0,
-      levelsInputWhiteOverride: selectedPreset.levelsInputWhite ?? 1,
-      levelsGammaOverride: selectedPreset.levelsGamma ?? 1,
-      levelsOutputBlackOverride: selectedPreset.levelsOutputBlack ?? 0,
-      levelsOutputWhiteOverride: selectedPreset.levelsOutputWhite ?? 1,
-    }, grainSeed);
-
-    const bins = new Uint32Array(256);
-    const data = histogramSource.data;
+    const sourceImage = processedImageData ?? imageData;
+    const buffer = new Uint32Array(256);
+    const data = sourceImage.data;
     const pixelCount = data.length / 4;
     const sampleStep = Math.max(1, Math.floor(pixelCount / 65536));
     const stepBytes = sampleStep * 4;
@@ -1614,11 +1586,11 @@ export default function App() {
       const g = data[i + 1];
       const b = data[i + 2];
       const lum = Math.min(255, Math.max(0, Math.round((r * 0.299 + g * 0.587 + b * 0.114))));
-      bins[lum]++;
+      buffer[lum]++;
     }
 
-    return bins;
-  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, grainSeed]);
+    return buffer;
+  }, [imageData, processedImageData]);
 
   const handleSaveCustomPreset = useCallback(() => {
     const name = customPresetName.trim() || `${selectedPreset.name} Custom`;
