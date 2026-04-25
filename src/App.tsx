@@ -109,6 +109,109 @@ const FrameIcon = () => (
   </SectionIcon>
 );
 
+const WhiteBalanceIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M10 4V2m0 16v-2m8-6h2M0 10h2" strokeLinecap="round" />
+      <circle cx="10" cy="10" r="3" />
+    </svg>
+  </span>
+);
+
+const ExposureIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M10 5V3m0 14v-2m5-5h2M3 10H5" strokeLinecap="round" />
+      <circle cx="10" cy="10" r="3" />
+    </svg>
+  </span>
+);
+
+const ContrastIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M10 4v12M6 4h8" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const BrightnessIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M10 6a4 4 0 100 8 4 4 0 000-8z" />
+      <path d="M10 2v2M10 16v2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M2 10h2M16 10h2M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const SaturationIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="10" cy="10" r="3" fill="currentColor" />
+      <path d="M10 2v3M10 15v3M2 10h3M15 10h3" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const FadedBlacksIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M4 16h12M4 12h10M4 8h8M4 4h6" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const GrainIconSmall = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M6 6h.01M10 10h.01M14 14h.01" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const VignetteIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="10" cy="10" r="4" />
+      <circle cx="10" cy="10" r="6" opacity="0.2" />
+    </svg>
+  </span>
+);
+
+const HalationIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="10" cy="10" r="3" />
+      <circle cx="10" cy="10" r="5" opacity="0.25" />
+    </svg>
+  </span>
+);
+
+const PurpleFringingIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="10" cy="10" r="3" />
+      <path d="M5 5l3 3M12 12l3 3" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const LensDistortionIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M4 10c2-4 6-4 8 0s6 4 8 0" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
+const ColorShiftIcon = () => (
+  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-800 text-zinc-400">
+    <svg className="w-2.5 h-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M6 10h8M10 6l4 4-4 4" strokeLinecap="round" />
+    </svg>
+  </span>
+);
+
 const CropIcon = () => (
   <SectionIcon>
     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -1913,19 +2016,19 @@ export default function App() {
             </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="White Balance" value={eff.whiteBalance} min={-1} max={1} step={0.05}
-                defaultValue={selectedPreset.whiteBalance} onChange={setWhiteBalance} format={v => v > 0 ? `+${(v * 100).toFixed(0)}% Warm` : v < 0 ? `${(v * 100).toFixed(0)}% Cool` : 'Neutral'} />
+                defaultValue={selectedPreset.whiteBalance} onChange={setWhiteBalance} format={v => v > 0 ? `+${(v * 100).toFixed(0)}% Warm` : v < 0 ? `${(v * 100).toFixed(0)}% Cool` : 'Neutral'} icon={<WhiteBalanceIcon />} />
               <SliderControl label="Exposure" value={exposure} min={-2} max={2} step={0.05}
-                defaultValue={0} onChange={(v) => setExposure(v ?? 0)} format={v => `${v > 0 ? '+' : ''}${v.toFixed(1)} EV`} />
+                defaultValue={0} onChange={(v) => setExposure(v ?? 0)} format={v => `${v > 0 ? '+' : ''}${v.toFixed(1)} EV`} icon={<ExposureIcon />} />
               <SliderControl label="Contrast" value={eff.contrast} min={-0.5} max={0.5} step={0.01}
-                defaultValue={selectedPreset.contrast} onChange={setContrastAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} />
+                defaultValue={selectedPreset.contrast} onChange={setContrastAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} icon={<ContrastIcon />} />
               <SliderControl label="Brightness" value={eff.brightness} min={-0.3} max={0.3} step={0.01}
-                defaultValue={selectedPreset.brightness} onChange={setBrightnessAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} />
+                defaultValue={selectedPreset.brightness} onChange={setBrightnessAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} icon={<BrightnessIcon />} />
             </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="Saturation" value={eff.saturation} min={0} max={2} step={0.01}
-                defaultValue={selectedPreset.saturation} onChange={setSaturationAmount} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.saturation} onChange={setSaturationAmount} format={v => `${(v * 100).toFixed(0)}%`} icon={<SaturationIcon />} />
               <SliderControl label="Faded Blacks" value={eff.fadedBlacks} min={0} max={0.25} step={0.005}
-                defaultValue={selectedPreset.fadedBlacks} onChange={setFadedBlacks} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.fadedBlacks} onChange={setFadedBlacks} format={v => `${(v * 100).toFixed(0)}%`} icon={<FadedBlacksIcon />} />
             </div>
 
             {/* Grain Section */}
@@ -1941,11 +2044,11 @@ export default function App() {
             </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="Amount" value={eff.grainAmount} min={0} max={1} step={0.01}
-                defaultValue={selectedPreset.grainAmount} onChange={setGrainAmount} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.grainAmount} onChange={setGrainAmount} format={v => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
               <SliderControl label="Size" value={eff.grainSize} min={0.3} max={5} step={0.1}
-                defaultValue={selectedPreset.grainSize} onChange={setGrainSize} format={v => v.toFixed(1)} />
+                defaultValue={selectedPreset.grainSize} onChange={setGrainSize} format={v => v.toFixed(1)} icon={<GrainIconSmall />} />
               <SliderControl label="Roughness" value={eff.grainRoughness} min={0} max={1} step={0.01}
-                defaultValue={selectedPreset.grainRoughness} onChange={setGrainRoughness} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.grainRoughness} onChange={setGrainRoughness} format={v => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
             </div>
 
             {/* Effects Section */}
@@ -1954,9 +2057,9 @@ export default function App() {
             </div>
             <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="Vignette" value={eff.vignette} min={0} max={0.6} step={0.01}
-                defaultValue={selectedPreset.vignette} onChange={setVignetteAmount} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.vignette} onChange={setVignetteAmount} format={v => `${(v * 100).toFixed(0)}%`} icon={<VignetteIcon />} />
               <SliderControl label="Halation" value={eff.halation} min={0} max={0.8} step={0.01}
-                defaultValue={selectedPreset.halation} onChange={setHalationAmount} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.halation} onChange={setHalationAmount} format={v => `${(v * 100).toFixed(0)}%`} icon={<HalationIcon />} />
             </div>
 
             {/* Optical Effects Section */}
@@ -1965,13 +2068,13 @@ export default function App() {
             </div>
             <div className="px-3 pb-3 space-y-1.5">
               <SliderControl label="Purple Fringing" value={eff.purpleFringing} min={0} max={1} step={0.01}
-                defaultValue={selectedPreset.purpleFringing} onChange={setPurpleFringing} format={v => `${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.purpleFringing} onChange={setPurpleFringing} format={v => `${(v * 100).toFixed(0)}%`} icon={<PurpleFringingIcon />} />
               <SliderControl label="Lens Distortion" value={eff.lensDistortion} min={0} max={0.5} step={0.01}
-                defaultValue={selectedPreset.lensDistortion} onChange={setLensDistortion} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.lensDistortion} onChange={setLensDistortion} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<LensDistortionIcon />} />
               <SliderControl label="Color Shift X" value={eff.colorShiftX} min={-1} max={1} step={0.05}
-                defaultValue={selectedPreset.colorShiftX} onChange={setColorShiftX} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.colorShiftX} onChange={setColorShiftX} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<ColorShiftIcon />} />
               <SliderControl label="Color Shift Y" value={eff.colorShiftY} min={-1} max={1} step={0.05}
-                defaultValue={selectedPreset.colorShiftY} onChange={setColorShiftY} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} />
+                defaultValue={selectedPreset.colorShiftY} onChange={setColorShiftY} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<ColorShiftIcon />} />
             </div>
 
             {/* Overlays Section */}
@@ -2569,7 +2672,7 @@ function SectionHeader({ title, icon }: { title: string; icon?: ReactNode }) {
 }
 
 function SliderControl({
-  label, value, min, max, step, defaultValue, onChange, format,
+  label, value, min, max, step, defaultValue, onChange, format, icon,
 }: {
   label: string;
   value: number;
@@ -2579,6 +2682,7 @@ function SliderControl({
   defaultValue: number;
   onChange: (v: number | null) => void;
   format: (v: number) => string;
+  icon?: ReactNode;
 }) {
   const isModified = Math.abs(value - defaultValue) > step * 0.5;
 
@@ -2587,7 +2691,7 @@ function SliderControl({
       <div className="flex items-center justify-between mb-0.5">
         <label className={`text-[11px] font-medium transition-colors ${isModified ? 'text-amber-500/80' : 'text-zinc-500'}`}>
           <span className="inline-flex items-center gap-2">
-            <SliderLabelIcon />
+            {icon ?? <SliderLabelIcon />}
             {label}
           </span>
         </label>
@@ -2755,7 +2859,6 @@ function LevelsHistogram({
       <div className="px-3 pt-3 pb-2">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-medium text-zinc-300">Histogram</span>
-          <span className="text-[10px] text-zinc-500">RGB</span>
         </div>
         <div className="relative h-24 rounded-lg overflow-hidden bg-zinc-900">
           <canvas ref={canvasRef} className="w-full h-full" />
