@@ -70,6 +70,11 @@ interface BatchImageEditState {
   colorShiftX: number | null;
   colorShiftY: number | null;
   whiteBalance: number | null;
+  levelsInputBlack: number | null;
+  levelsInputWhite: number | null;
+  levelsGamma: number | null;
+  levelsOutputBlack: number | null;
+  levelsOutputWhite: number | null;
 }
 
 interface BatchImage {
@@ -80,6 +85,7 @@ interface BatchImage {
   height: number;
   name: string;
   data: ImageData;
+  thumbUrl?: string;
   editState: BatchImageEditState;
 }
 
@@ -110,6 +116,11 @@ interface HistoryEntry {
   colorShiftX: number | null;
   colorShiftY: number | null;
   whiteBalance: number | null;
+  levelsInputBlack: number | null;
+  levelsInputWhite: number | null;
+  levelsGamma: number | null;
+  levelsOutputBlack: number | null;
+  levelsOutputWhite: number | null;
   frameColor: 'none' | 'white' | 'black';
   frameThickness: number;
   selectedOverlay: string | null;
@@ -382,6 +393,11 @@ export default function App() {
   const [colorShiftX, setColorShiftX] = useState<number | null>(null);
   const [colorShiftY, setColorShiftY] = useState<number | null>(null);
   const [whiteBalance, setWhiteBalance] = useState<number | null>(null);
+  const [levelsInputBlack, setLevelsInputBlack] = useState<number | null>(null);
+  const [levelsInputWhite, setLevelsInputWhite] = useState<number | null>(null);
+  const [levelsGamma, setLevelsGamma] = useState<number | null>(null);
+  const [levelsOutputBlack, setLevelsOutputBlack] = useState<number | null>(null);
+  const [levelsOutputWhite, setLevelsOutputWhite] = useState<number | null>(null);
   const [processedImageData, setProcessedImageData] = useState<ImageData | null>(null);
 
   const getCurrentBatchEditState = useCallback((): BatchImageEditState => ({
@@ -407,6 +423,11 @@ export default function App() {
     colorShiftX,
     colorShiftY,
     whiteBalance,
+    levelsInputBlack,
+    levelsInputWhite,
+    levelsGamma,
+    levelsOutputBlack,
+    levelsOutputWhite,
   }), [
     selectedPreset,
     frameColor,
@@ -430,6 +451,11 @@ export default function App() {
     colorShiftX,
     colorShiftY,
     whiteBalance,
+    levelsInputBlack,
+    levelsInputWhite,
+    levelsGamma,
+    levelsOutputBlack,
+    levelsOutputWhite,
   ]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -460,6 +486,11 @@ export default function App() {
     setColorShiftX(null);
     setColorShiftY(null);
     setWhiteBalance(null);
+    setLevelsInputBlack(null);
+    setLevelsInputWhite(null);
+    setLevelsGamma(null);
+    setLevelsOutputBlack(null);
+    setLevelsOutputWhite(null);
     setGrainSeed(Math.floor(Math.random() * 100000));
   }, [selectedPreset.id]);
 
@@ -497,7 +528,12 @@ export default function App() {
     colorShiftXOverride: colorShiftX ?? undefined,
     colorShiftYOverride: colorShiftY ?? undefined,
     whiteBalanceOverride: whiteBalance ?? undefined,
-  }), [grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance]);
+    levelsInputBlackOverride: levelsInputBlack ?? undefined,
+    levelsInputWhiteOverride: levelsInputWhite ?? undefined,
+    levelsGammaOverride: levelsGamma ?? undefined,
+    levelsOutputBlackOverride: levelsOutputBlack ?? undefined,
+    levelsOutputWhiteOverride: levelsOutputWhite ?? undefined,
+  }), [grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
 
   const frameBackground = frameColor === 'white' ? '#ffffff' : frameColor === 'black' ? '#000000' : 'transparent';
   const framePadding = frameColor !== 'none' ? `${frameThickness}%` : '0';
@@ -509,6 +545,7 @@ export default function App() {
     if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
 
     setProcessing(true);
+    setProcessedImageData((prev) => prev ?? imageData);
 
     // Adaptive debounce: 40ms for fast feedback, increases slightly for slower interactions
     const debounceDelay = 45;
@@ -707,6 +744,7 @@ export default function App() {
             height: h,
             name: file.name,
             data,
+            thumbUrl: result,
             editState: getCurrentBatchEditState(),
           });
         };
@@ -742,6 +780,7 @@ export default function App() {
         height: h,
         name: 'Sample',
         data,
+        thumbUrl: url,
         editState: getCurrentBatchEditState(),
       });
       setLoadingDemo(false);
@@ -789,6 +828,11 @@ export default function App() {
     setColorShiftX(entry.editState.colorShiftX);
     setColorShiftY(entry.editState.colorShiftY);
     setWhiteBalance(entry.editState.whiteBalance);
+    setLevelsInputBlack(entry.editState.levelsInputBlack);
+    setLevelsInputWhite(entry.editState.levelsInputWhite);
+    setLevelsGamma(entry.editState.levelsGamma);
+    setLevelsOutputBlack(entry.editState.levelsOutputBlack);
+    setLevelsOutputWhite(entry.editState.levelsOutputWhite);
 
     const img = new Image();
     img.src = entry.url;
@@ -806,6 +850,21 @@ export default function App() {
     const editState = getCurrentBatchEditState();
     setBatchImages((prev) => prev.map((entry, idx) => idx === activeBatchIndex ? { ...entry, editState } : entry));
   }, [activeBatchIndex, getCurrentBatchEditState]);
+
+  useEffect(() => {
+    if (activeBatchIndex === null || !processedCanvasRef.current) return;
+    const source = processedCanvasRef.current;
+    const maxDim = 120;
+    const scale = Math.min(1, maxDim / Math.max(source.width || 1, source.height || 1));
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = Math.max(1, Math.round(source.width * scale));
+    thumbCanvas.height = Math.max(1, Math.round(source.height * scale));
+    const ctx = thumbCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(source, 0, 0, thumbCanvas.width, thumbCanvas.height);
+    const thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.7);
+    setBatchImages((prev) => prev.map((entry, idx) => idx === activeBatchIndex ? { ...entry, thumbUrl } : entry));
+  }, [processedImageData, activeBatchIndex]);
 
   const createSnapshot = useCallback((): HistoryEntry | null => {
     if (!imageData) return null;
@@ -827,6 +886,11 @@ export default function App() {
       colorShiftX,
       colorShiftY,
       whiteBalance,
+      levelsInputBlack,
+      levelsInputWhite,
+      levelsGamma,
+      levelsOutputBlack,
+      levelsOutputWhite,
       frameColor,
       frameThickness,
       selectedOverlay,
@@ -857,6 +921,11 @@ export default function App() {
     setColorShiftX(snapshot.colorShiftX);
     setColorShiftY(snapshot.colorShiftY);
     setWhiteBalance(snapshot.whiteBalance);
+    setLevelsInputBlack(snapshot.levelsInputBlack);
+    setLevelsInputWhite(snapshot.levelsInputWhite);
+    setLevelsGamma(snapshot.levelsGamma);
+    setLevelsOutputBlack(snapshot.levelsOutputBlack);
+    setLevelsOutputWhite(snapshot.levelsOutputWhite);
     setFrameColor(snapshot.frameColor);
     setFrameThickness(snapshot.frameThickness);
     setSelectedOverlay(snapshot.selectedOverlay);
@@ -1213,6 +1282,11 @@ export default function App() {
     setColorShiftX(null);
     setColorShiftY(null);
     setWhiteBalance(null);
+    setLevelsInputBlack(null);
+    setLevelsInputWhite(null);
+    setLevelsGamma(null);
+    setLevelsOutputBlack(null);
+    setLevelsOutputWhite(null);
   }, []);
 
   const customPresetItems = useMemo(() => customPresets.filter((preset) => (
@@ -1293,7 +1367,32 @@ export default function App() {
     colorShiftX: colorShiftX ?? selectedPreset.colorShiftX,
     colorShiftY: colorShiftY ?? selectedPreset.colorShiftY,
     whiteBalance: whiteBalance ?? selectedPreset.whiteBalance,
+    levelsInputBlack: levelsInputBlack ?? selectedPreset.levelsInputBlack ?? 0,
+    levelsInputWhite: levelsInputWhite ?? selectedPreset.levelsInputWhite ?? 1,
+    levelsGamma: levelsGamma ?? selectedPreset.levelsGamma ?? 1,
+    levelsOutputBlack: levelsOutputBlack ?? selectedPreset.levelsOutputBlack ?? 0,
+    levelsOutputWhite: levelsOutputWhite ?? selectedPreset.levelsOutputWhite ?? 1,
   };
+
+  const histogramImage = processedImageData ?? imageData;
+  const levelsHistogram = useMemo(() => {
+    if (!histogramImage) return null;
+    const bins = new Uint32Array(256);
+    const data = histogramImage.data;
+    const pixelCount = data.length / 4;
+    const sampleStep = Math.max(1, Math.floor(pixelCount / 65536));
+    const stepBytes = sampleStep * 4;
+
+    for (let i = 0; i < data.length; i += stepBytes) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const lum = Math.min(255, Math.max(0, Math.round((r * 0.299 + g * 0.587 + b * 0.114))));
+      bins[lum]++;
+    }
+
+    return bins;
+  }, [histogramImage]);
 
   const handleSaveCustomPreset = useCallback(() => {
     const name = customPresetName.trim() || `${selectedPreset.name} Custom`;
@@ -1318,6 +1417,11 @@ export default function App() {
       colorShiftX: eff.colorShiftX,
       colorShiftY: eff.colorShiftY,
       whiteBalance: eff.whiteBalance,
+      levelsInputBlack: eff.levelsInputBlack,
+      levelsInputWhite: eff.levelsInputWhite,
+      levelsGamma: eff.levelsGamma,
+      levelsOutputBlack: eff.levelsOutputBlack,
+      levelsOutputWhite: eff.levelsOutputWhite,
     };
     setCustomPresets((prev) => [...prev, newPreset]);
     setSelectedPreset(newPreset);
@@ -1336,7 +1440,8 @@ export default function App() {
   const hasOverrides = grainAmount !== null || grainSize !== null || grainRoughness !== null ||
     vignetteAmount !== null || halationAmount !== null || contrastAmount !== null ||
     saturationAmount !== null || brightnessAmount !== null || fadedBlacks !== null || exposure !== 0 ||
-    purpleFringing !== null || lensDistortion !== null || colorShiftX !== null || colorShiftY !== null || whiteBalance !== null;
+    purpleFringing !== null || lensDistortion !== null || colorShiftX !== null || colorShiftY !== null || whiteBalance !== null ||
+    levelsInputBlack !== null || levelsInputWhite !== null || levelsGamma !== null || levelsOutputBlack !== null || levelsOutputWhite !== null;
 
   // Split view mouse handling
   const handleSplitMove = useCallback((clientX: number) => {
@@ -1551,7 +1656,7 @@ export default function App() {
                         onClick={() => selectBatchImage(index)}
                         className={`aspect-square rounded overflow-hidden border ${activeBatchIndex === index ? 'border-amber-500 ring-1 ring-amber-500/30' : 'border-zinc-700/40 hover:border-zinc-500'}`}
                       >
-                        <img src={item.url} className="w-full h-full object-cover" alt={item.name} />
+                        <img src={item.thumbUrl || item.url} className="w-full h-full object-cover" alt={item.name} />
                       </button>
                     ))}
                   </div>
@@ -1666,6 +1771,36 @@ export default function App() {
                 defaultValue={selectedPreset.contrast} onChange={setContrastAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} />
               <SliderControl label="Brightness" value={eff.brightness} min={-0.3} max={0.3} step={0.01}
                 defaultValue={selectedPreset.brightness} onChange={setBrightnessAmount} format={v => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}`} />
+            </div>
+            <div className="px-3 pt-1 pb-1">
+              <SectionHeader title="Levels" />
+            </div>
+            <div className="px-3 pb-2">
+              <LevelsHistogram
+                histogram={levelsHistogram}
+                inputBlack={eff.levelsInputBlack}
+                inputWhite={eff.levelsInputWhite}
+                outputBlack={eff.levelsOutputBlack}
+                outputWhite={eff.levelsOutputWhite}
+                onInputBlackChange={setLevelsInputBlack}
+                onInputWhiteChange={setLevelsInputWhite}
+                onOutputBlackChange={setLevelsOutputBlack}
+                onOutputWhiteChange={setLevelsOutputWhite}
+              />
+            </div>
+            <div className="px-3 pb-2 space-y-1.5">
+              <SliderControl label="Input Black" value={eff.levelsInputBlack} min={0} max={0.4} step={0.01}
+                defaultValue={selectedPreset.levelsInputBlack ?? 0} onChange={setLevelsInputBlack} format={v => `${Math.round(v * 100)}%`} />
+              <SliderControl label="Gamma" value={eff.levelsGamma} min={0.25} max={4} step={0.01}
+                defaultValue={selectedPreset.levelsGamma ?? 1} onChange={setLevelsGamma} format={v => v.toFixed(2)} />
+              <SliderControl label="Input White" value={eff.levelsInputWhite} min={0.6} max={1} step={0.01}
+                defaultValue={selectedPreset.levelsInputWhite ?? 1} onChange={setLevelsInputWhite} format={v => `${Math.round(v * 100)}%`} />
+              <SliderControl label="Output Black" value={eff.levelsOutputBlack} min={0} max={0.4} step={0.01}
+                defaultValue={selectedPreset.levelsOutputBlack ?? 0} onChange={setLevelsOutputBlack} format={v => `${Math.round(v * 100)}%`} />
+              <SliderControl label="Output White" value={eff.levelsOutputWhite} min={0.6} max={1} step={0.01}
+                defaultValue={selectedPreset.levelsOutputWhite ?? 1} onChange={setLevelsOutputWhite} format={v => `${Math.round(v * 100)}%`} />
+            </div>
+            <div className="px-3 pb-2 space-y-1.5">
               <SliderControl label="Saturation" value={eff.saturation} min={0} max={2} step={0.01}
                 defaultValue={selectedPreset.saturation} onChange={setSaturationAmount} format={v => `${(v * 100).toFixed(0)}%`} />
               <SliderControl label="Faded Blacks" value={eff.fadedBlacks} min={0} max={0.25} step={0.005}
@@ -2351,6 +2486,170 @@ function SliderControl({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="w-full h-1 rounded-full appearance-none cursor-pointer"
       />
+    </div>
+  );
+}
+
+function LevelsHistogram({
+  histogram,
+  inputBlack,
+  inputWhite,
+  outputBlack,
+  outputWhite,
+  onInputBlackChange,
+  onInputWhiteChange,
+  onOutputBlackChange,
+  onOutputWhiteChange,
+}: {
+  histogram: Uint32Array | null;
+  inputBlack: number;
+  inputWhite: number;
+  outputBlack: number;
+  outputWhite: number;
+  onInputBlackChange: (value: number | null) => void;
+  onInputWhiteChange: (value: number | null) => void;
+  onOutputBlackChange: (value: number | null) => void;
+  onOutputWhiteChange: (value: number | null) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const histogramRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef<{
+    marker: 'inputBlack' | 'inputWhite' | 'outputBlack' | 'outputWhite' | null;
+    startX: number;
+    startValue: number;
+  }>({ marker: null, startX: 0, startValue: 0 });
+
+  const clamp = (value: number, min = 0, max = 1) => Math.min(Math.max(value, min), max);
+
+  const updateValue = useCallback((marker: 'inputBlack' | 'inputWhite' | 'outputBlack' | 'outputWhite', x: number) => {
+    const bar = histogramRef.current;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    const normalized = clamp((x - rect.left) / rect.width);
+
+    if (marker === 'inputBlack') {
+      onInputBlackChange(Math.min(normalized, inputWhite - 0.01));
+    } else if (marker === 'inputWhite') {
+      onInputWhiteChange(Math.max(normalized, inputBlack + 0.01));
+    } else if (marker === 'outputBlack') {
+      onOutputBlackChange(Math.min(normalized, outputWhite - 0.01));
+    } else if (marker === 'outputWhite') {
+      onOutputWhiteChange(Math.max(normalized, outputBlack + 0.01));
+    }
+  }, [inputBlack, inputWhite, outputBlack, outputWhite, onInputBlackChange, onInputWhiteChange, onOutputBlackChange, onOutputWhiteChange]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !histogram) return;
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    ctx.fillStyle = '#10151f';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    const max = Math.max(1, Math.max(...histogram));
+    const barWidth = rect.width / histogram.length;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let x = 0; x < histogram.length; x++) {
+      const value = histogram[x] / max;
+      const h = value * rect.height;
+      ctx.fillRect(x * barWidth, rect.height - h, Math.max(1, barWidth), h);
+    }
+
+    const drawMarker = (position: number, color: string) => {
+      const x = rect.width * clamp(position);
+      ctx.fillStyle = color;
+      ctx.fillRect(x - 1, 0, 2, rect.height);
+    };
+
+    drawMarker(inputBlack, 'rgba(250,204,21,0.85)');
+    drawMarker(inputWhite, 'rgba(250,204,21,0.85)');
+    drawMarker(outputBlack, 'rgba(131, 204, 255, 0.75)');
+    drawMarker(outputWhite, 'rgba(131, 204, 255, 0.75)');
+  }, [histogram, inputBlack, inputWhite, outputBlack, outputWhite]);
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!draggingRef.current.marker) return;
+      updateValue(draggingRef.current.marker, event.clientX);
+    };
+
+    const handlePointerUp = () => {
+      draggingRef.current.marker = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [updateValue]);
+
+  const startDrag = (marker: 'inputBlack' | 'inputWhite' | 'outputBlack' | 'outputWhite') => (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    draggingRef.current = {
+      marker,
+      startX: event.clientX,
+      startValue: marker === 'inputBlack' ? inputBlack
+        : marker === 'inputWhite' ? inputWhite
+        : marker === 'outputBlack' ? outputBlack
+        : outputWhite,
+    };
+  };
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+      <div className="px-3 pt-3 pb-2">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-medium text-zinc-300">Histogram</span>
+          <span className="text-[10px] text-zinc-500">RGB</span>
+        </div>
+        <div className="relative h-24 rounded-lg overflow-hidden bg-zinc-900">
+          <canvas ref={canvasRef} className="w-full h-full" />
+        </div>
+        <div ref={histogramRef} className="relative mt-2 h-7 rounded-lg overflow-hidden bg-zinc-900">
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-zinc-800 to-white opacity-90" />
+          {['inputBlack', 'inputWhite', 'outputBlack', 'outputWhite'].map((marker) => {
+            const position = marker === 'inputBlack'
+              ? inputBlack
+              : marker === 'inputWhite'
+                ? inputWhite
+                : marker === 'outputBlack'
+                  ? outputBlack
+                  : outputWhite;
+            const color = marker === 'inputBlack' || marker === 'inputWhite'
+              ? 'bg-amber-400'
+              : 'bg-sky-400';
+            const left = `${clamp(position) * 100}%`;
+            return (
+              <div
+                key={marker}
+                onPointerDown={startDrag(marker as any)}
+                className={`${color} absolute top-0 h-full w-1.5 -translate-x-1/2 cursor-ew-resize`}
+                style={{ left }}
+              />
+            );
+          })}
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-zinc-500">
+          <span>In Black: {Math.round(inputBlack * 255)}</span>
+          <span className="text-right">Out White: {Math.round(outputWhite * 255)}</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -36,6 +36,11 @@ export interface FilmPreset {
   colorShiftX: number;    // -1 to 1 (cyan to red)
   colorShiftY: number;    // -1 to 1 (blue to yellow)
   whiteBalance: number;   // -1 to 1 (cool/blue to warm/amber)
+  levelsInputBlack?: number;  // 0 to 1
+  levelsInputWhite?: number;  // 0 to 1
+  levelsGamma?: number;       // >0
+  levelsOutputBlack?: number; // 0 to 1
+  levelsOutputWhite?: number; // 0 to 1
   // Tone curve shape
   toeStrength: number;    // shadow roll-off 0-1
   shoulderStrength: number; // highlight roll-off 0-1

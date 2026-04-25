@@ -129,6 +129,34 @@ export interface ProcessingParams {
   colorShiftXOverride?: number;
   colorShiftYOverride?: number;
   whiteBalanceOverride?: number;
+  levelsInputBlackOverride?: number;
+  levelsInputWhiteOverride?: number;
+  levelsGammaOverride?: number;
+  levelsOutputBlackOverride?: number;
+  levelsOutputWhiteOverride?: number;
+}
+
+function buildLevelsLUT(
+  inputBlack: number,
+  inputWhite: number,
+  gamma: number,
+  outputBlack: number,
+  outputWhite: number,
+): Uint8Array {
+  const lut = new Uint8Array(256);
+  const inRange = Math.max(0.001, inputWhite - inputBlack);
+  const invGamma = 1 / Math.max(0.01, gamma);
+
+  for (let i = 0; i < 256; i++) {
+    let value = i / 255;
+    value = (value - inputBlack) / inRange;
+    value = Math.max(0, Math.min(1, value));
+    value = Math.pow(value, invGamma);
+    value = outputBlack + value * (outputWhite - outputBlack);
+    lut[i] = Math.round(Math.max(0, Math.min(1, value)) * 255);
+  }
+
+  return lut;
 }
 
 export function processImage(
@@ -158,8 +186,14 @@ export function processImage(
   const colorShiftX = params.colorShiftXOverride ?? preset.colorShiftX;
   const colorShiftY = params.colorShiftYOverride ?? preset.colorShiftY;
   const whiteBalance = params.whiteBalanceOverride ?? preset.whiteBalance;
+  const levelsInputBlack = params.levelsInputBlackOverride ?? preset.levelsInputBlack ?? 0;
+  const levelsInputWhite = params.levelsInputWhiteOverride ?? preset.levelsInputWhite ?? 1;
+  const levelsGamma = params.levelsGammaOverride ?? preset.levelsGamma ?? 1;
+  const levelsOutputBlack = params.levelsOutputBlackOverride ?? preset.levelsOutputBlack ?? 0;
+  const levelsOutputWhite = params.levelsOutputWhiteOverride ?? preset.levelsOutputWhite ?? 1;
 
   // Build LUTs
+  const levelsLUT = buildLevelsLUT(levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite);
   const lutR = buildCurveLUT(preset.curves.r);
   const lutG = buildCurveLUT(preset.curves.g);
   const lutB = buildCurveLUT(preset.curves.b);
@@ -212,7 +246,12 @@ export function processImage(
       }
     }
 
-    // 4. Apply film curves (characteristic curve)
+    // 4. Levels adjustment (input/gamma/output)
+    r = levelsLUT[Math.round(r)];
+    g = levelsLUT[Math.round(g)];
+    b = levelsLUT[Math.round(b)];
+
+    // 5. Apply film curves (characteristic curve)
     r = lutR[Math.round(r)];
     g = lutG[Math.round(g)];
     b = lutB[Math.round(b)];
