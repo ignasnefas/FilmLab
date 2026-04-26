@@ -140,6 +140,19 @@ export default function AppLayout() {
     };
   }, [onResizeMove, stopResize]);
 
+  useEffect(() => {
+    if (!state.draggingSplit) return;
+
+    const stopSplitDrag = () => state.setDraggingSplit(false);
+    window.addEventListener('pointerup', stopSplitDrag);
+    window.addEventListener('pointercancel', stopSplitDrag);
+
+    return () => {
+      window.removeEventListener('pointerup', stopSplitDrag);
+      window.removeEventListener('pointercancel', stopSplitDrag);
+    };
+  }, [state.draggingSplit, state.setDraggingSplit]);
+
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
@@ -1297,9 +1310,10 @@ export default function AppLayout() {
               ref={splitContainerRef}
               className="relative w-full h-full flex items-center justify-center select-none"
               style={{ backgroundColor: frameBackground, padding: framePadding, touchAction: 'none' }}
-              onMouseMove={(e) => handleSplitMove(e.clientX)}
-              onMouseUp={() => setDraggingSplit(false)}
-              onMouseLeave={() => setDraggingSplit(false)}
+              onPointerMove={(e) => handleSplitMove(e.clientX)}
+              onPointerUp={() => setDraggingSplit(false)}
+              onPointerCancel={() => setDraggingSplit(false)}
+              onPointerLeave={() => setDraggingSplit(false)}
               onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
               onTouchEnd={() => setDraggingSplit(false)}
             >
@@ -1331,8 +1345,22 @@ export default function AppLayout() {
                 <div
                   className="absolute top-0 bottom-0 cursor-col-resize z-10"
                   style={{ left: `${splitPos}%`, transform: 'translateX(-50%)', width: '32px' }}
-                  onMouseDown={() => setDraggingSplit(true)}
-                  onTouchStart={() => setDraggingSplit(true)}
+                  data-ignore-pan
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof e.currentTarget.setPointerCapture === 'function') {
+                      try {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                      } catch {}
+                    }
+                    setDraggingSplit(true);
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDraggingSplit(true);
+                  }}
                 >
                   <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px bg-white/60" />
                   <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white shadow-xl flex items-center justify-center">
