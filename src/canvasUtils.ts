@@ -7,12 +7,23 @@ export function getCropAspectRatio(cropRatio: CropRatio, width: number, height: 
   return 16 / 9;
 }
 
-export function clampCropRect(rect: CropRect, minSize = 0.05): CropRect {
+export function clampCropRect(rect: CropRect, minSize = 0.05, aspectRatio?: number): CropRect {
+  let w = Math.max(minSize, Math.min(rect.w, 1));
+  let h = Math.max(minSize, Math.min(rect.h, 1));
+
+  if (aspectRatio) {
+    if (w / h > aspectRatio) {
+      w = h * aspectRatio;
+    } else {
+      h = w / aspectRatio;
+    }
+  }
+
   return {
-    x: Math.max(0, Math.min(rect.x, 1 - rect.w)),
-    y: Math.max(0, Math.min(rect.y, 1 - rect.h)),
-    w: Math.max(minSize, Math.min(rect.w, 1)),
-    h: Math.max(minSize, Math.min(rect.h, 1)),
+    x: Math.max(0, Math.min(rect.x, 1 - w)),
+    y: Math.max(0, Math.min(rect.y, 1 - h)),
+    w,
+    h,
   };
 }
 

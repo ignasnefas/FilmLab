@@ -919,7 +919,7 @@ export function useFilmLabState() {
       }
     }
 
-    setCropRect(clampCropRect(next, minSize));
+    setCropRect(clampCropRect(next, minSize, cropRatio !== 'original' ? aspectRatio : undefined));
   }, [draggingCrop, cropRatio, cropRect, canvasBounds]);
 
   const onCropPointerUp = useCallback(() => {
