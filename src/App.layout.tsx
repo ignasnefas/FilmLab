@@ -181,6 +181,7 @@ export default function AppLayout() {
     rotation,
     canvasRef,
     originalCanvasRef,
+    imageWrapperRef,
     fileInputRef,
     splitContainerRef,
     mainAreaRef,
@@ -277,12 +278,6 @@ export default function AppLayout() {
     setBatchImages,
   } = state;
 
-  const handleMultiTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length > 1) {
-      setShowOriginal(false);
-      setIsTouchPinching(true);
-    }
-  };
 
   const handleMultiTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length > 1) {
@@ -1254,6 +1249,7 @@ export default function AppLayout() {
           className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-visible"
           style={{
             touchAction: 'none',
+            overscrollBehavior: 'none',
             ...(isMobile
               ? {
                   paddingTop: '48px',
@@ -1314,7 +1310,7 @@ export default function AppLayout() {
             <div
               ref={splitContainerRef}
               className="relative w-full h-full flex items-center justify-center select-none"
-              style={{ backgroundColor: frameBackground, padding: framePadding }}
+              style={{ backgroundColor: frameBackground, padding: framePadding, touchAction: 'none' }}
               onMouseMove={(e) => handleSplitMove(e.clientX)}
               onMouseUp={() => setDraggingSplit(false)}
               onMouseLeave={() => setDraggingSplit(false)}
@@ -1407,13 +1403,10 @@ export default function AppLayout() {
           ) : (
             <div
               className="relative flex items-center justify-center w-full h-full"
-              onTouchStart={handleMultiTouchStart}
-              onTouchMove={handleMultiTouchMove}
-              onTouchEnd={handleMultiTouchEnd}
-              onTouchCancel={handleMultiTouchEnd}
+              style={{ touchAction: 'none', overscrollBehavior: 'none' }}
             >
-              <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding, width: '100%' }}>
-                <div className="relative inline-block w-auto max-w-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle }}>
+              <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding, width: '100%', touchAction: 'none', overscrollBehavior: 'none' }}>
+                <div ref={imageWrapperRef} className="relative inline-block w-auto max-w-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle, touchAction: 'none' }}>
                   <canvas
                     ref={canvasRef}
                     className="block shadow-2xl opacity-100"
@@ -1425,6 +1418,7 @@ export default function AppLayout() {
                       width: 'auto',
                       height: 'auto',
                       display: 'block',
+                      touchAction: 'none',
                     }}
                   />
                   {cropMode && cropRect && (

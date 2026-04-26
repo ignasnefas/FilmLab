@@ -62,6 +62,7 @@ export function useFilmLabState() {
   const [zoom, setZoom] = useState(1);
   const zoomRef = useRef(zoom);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const imageWrapperRef = useRef<HTMLDivElement>(null);
 
   const [overlayCategories, setOverlayCategories] = useState<Array<'lightleaks' | 'bokeh' | 'textures' | 'paper'>>(['lightleaks']);
   const [selectedOverlays, setSelectedOverlays] = useState<string[]>([]);
@@ -947,7 +948,7 @@ export function useFilmLabState() {
 
   useEffect(() => {
     const el = mainAreaRef.current;
-    if (!el) return;
+    if (!el || !image) return;
 
     const clampZoom = (value: number) => Math.min(3, Math.max(0.5, value));
     const getDistance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -964,7 +965,12 @@ export function useFilmLabState() {
       if (e.pointerType !== 'touch' && e.pointerType !== 'mouse') return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
-      if (typeof (e.target as HTMLElement)?.setPointerCapture === 'function') {
+      const pointerTarget = e.currentTarget as HTMLElement;
+      if (typeof pointerTarget?.setPointerCapture === 'function') {
+        try {
+          pointerTarget.setPointerCapture(e.pointerId);
+        } catch {}
+      } else if (typeof (e.target as HTMLElement)?.setPointerCapture === 'function') {
         try {
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
         } catch {}
@@ -987,6 +993,13 @@ export function useFilmLabState() {
       }
     };
 
+    const updateWrapperTransform = (nextOffset: { x: number; y: number }, zoomValue: number) => {
+      const wrapper = imageWrapperRef.current;
+      if (wrapper) {
+        wrapper.style.transform = `translate3d(${nextOffset.x}px, ${nextOffset.y}px, 0) scale(${zoomValue})`;
+      }
+    };
+
     const scheduleOffsetUpdate = (nextOffset: { x: number; y: number }) => {
       offsetRef.current = nextOffset;
       pendingOffsetRef.current = nextOffset;
@@ -994,7 +1007,7 @@ export function useFilmLabState() {
         rafRef.current = window.requestAnimationFrame(() => {
           rafRef.current = null;
           if (pendingOffsetRef.current) {
-            setOffset(pendingOffsetRef.current);
+            updateWrapperTransform(pendingOffsetRef.current, zoomRef.current);
             pendingOffsetRef.current = null;
           }
         });
@@ -1007,6 +1020,7 @@ export function useFilmLabState() {
         rafRef.current = null;
       }
       if (pendingOffsetRef.current) {
+        updateWrapperTransform(pendingOffsetRef.current, zoomRef.current);
         setOffset(pendingOffsetRef.current);
         pendingOffsetRef.current = null;
       }
@@ -1034,6 +1048,12 @@ export function useFilmLabState() {
       }
     };
 
+    const preventTouchScroll = (event: TouchEvent) => {
+      if (event.touches.length > 0) {
+        event.preventDefault();
+      }
+    };
+
     const endPinch = (e: PointerEvent) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'mouse') return;
       if (typeof (e.target as HTMLElement)?.releasePointerCapture === 'function') {
@@ -1053,16 +1073,20 @@ export function useFilmLabState() {
 
     el.addEventListener('wheel', onWheel, { passive: false });
     el.addEventListener('pointerdown', onPointerDown, { passive: false });
-    el.addEventListener('pointermove', onPointerMove, { passive: false });
-    el.addEventListener('pointerup', endPinch);
-    el.addEventListener('pointercancel', endPinch);
+    el.addEventListener('touchstart', preventTouchScroll, { passive: false });
+    el.addEventListener('touchmove', preventTouchScroll, { passive: false });
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', endPinch);
+    window.addEventListener('pointercancel', endPinch);
 
     return () => {
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('pointermove', onPointerMove);
-      el.removeEventListener('pointerup', endPinch);
-      el.removeEventListener('pointercancel', endPinch);
+      el.removeEventListener('touchstart', preventTouchScroll);
+      el.removeEventListener('touchmove', preventTouchScroll);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', endPinch);
+      window.removeEventListener('pointercancel', endPinch);
       pointerPositionsRef.current.clear();
       pinchRef.current = null;
       if (rafRef.current !== null) {
@@ -1525,6 +1549,7 @@ const curveOverridesExist = useMemo(() => {
     processedImageData,
     canvasRef,
     originalCanvasRef,
+    imageWrapperRef,
     fileInputRef,
     splitContainerRef,
     mainAreaRef,
