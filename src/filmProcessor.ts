@@ -13,6 +13,25 @@ function getLUTCacheKey(prefix: string, values: Array<number | string>) {
   return `${prefix}:${values.join(',')}`;
 }
 
+const clampByte = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+const clampUnit = (value: number) => Math.max(0, Math.min(1, value));
+
+const applyWhiteBalance = (whiteBalance: number, r: number, g: number, b: number) => {
+  if (whiteBalance === 0) return [r, g, b];
+  const amount = Math.abs(whiteBalance) * 0.3;
+  return whiteBalance > 0
+    ? [
+        clampByte(r * (1 + amount)),
+        clampByte(g * (1 + amount * 0.5)),
+        clampByte(b * (1 - amount * 0.8)),
+      ]
+    : [
+        clampByte(r * (1 - amount * 0.5)),
+        clampByte(g * (1 - amount * 0.3)),
+        clampByte(b * (1 + amount)),
+      ];
+};
+
 // Fast cubic interpolation for curve points
 function interpolateCurve(points: [number, number][], x: number): number {
   if (x <= points[0][0]) return points[0][1];
@@ -249,6 +268,8 @@ export function processImage(
   const exposureMult = Math.pow(2, exposure);
   const brightnessBias = brightness * 40;
   const satInv = saturation !== 1.0;
+  const hasBalance = whiteBalance !== 0;
+  const clamp = clampByte;
 
   // Process pixels with optimized loop
   const pixelCount = data.length;
@@ -261,51 +282,23 @@ export function processImage(
     let g = data[i + 1];
     let b = data[i + 2];
 
-    // 1. Exposure compensation
-    if (exposure !== 0) {
-      r = Math.min(255, r * exposureMult);
-      g = Math.min(255, g * exposureMult);
-      b = Math.min(255, b * exposureMult);
+    if (exposure !== 0 || brightnessBias !== 0) {
+      r = clamp(r * exposureMult + brightnessBias);
+      g = clamp(g * exposureMult + brightnessBias);
+      b = clamp(b * exposureMult + brightnessBias);
     }
 
-    // 2. Brightness (fast path when zero)
-    if (brightnessBias !== 0) {
-      r = Math.max(0, Math.min(255, r + brightnessBias));
-      g = Math.max(0, Math.min(255, g + brightnessBias));
-      b = Math.max(0, Math.min(255, b + brightnessBias));
+    if (hasBalance) {
+      [r, g, b] = applyWhiteBalance(whiteBalance, r, g, b);
     }
 
-    // 3. White balance (color temperature adjustment)
-    if (whiteBalance !== 0) {
-      if (whiteBalance > 0) {
-        // Warm (increase red/yellow, decrease blue)
-        const warmAmount = whiteBalance * 0.3;
-        r = Math.min(255, r * (1 + warmAmount));
-        g = Math.min(255, g * (1 + warmAmount * 0.5));
-        b = Math.max(0, b * (1 - warmAmount * 0.8));
-      } else {
-        // Cool (increase blue, decrease red/yellow)
-        const coolAmount = Math.abs(whiteBalance) * 0.3;
-        r = Math.max(0, r * (1 - coolAmount * 0.5));
-        g = Math.max(0, g * (1 - coolAmount * 0.3));
-        b = Math.min(255, b * (1 + coolAmount));
-      }
-    }
+    const ri = levelsLUT[clamp(r)];
+    const gi = levelsLUT[clamp(g)];
+    const bi = levelsLUT[clamp(b)];
 
-    // 4. Levels adjustment (input/gamma/output)
-    r = levelsLUT[Math.round(r)];
-    g = levelsLUT[Math.round(g)];
-    b = levelsLUT[Math.round(b)];
-
-    // 5. Apply film curves (characteristic curve)
-    r = lutR[Math.round(r)];
-    g = lutG[Math.round(g)];
-    b = lutB[Math.round(b)];
-
-    // 5. Apply contrast with toe/shoulder
-    r = contrastLUT[r];
-    g = contrastLUT[g];
-    b = contrastLUT[b];
+    r = contrastLUT[lutR[ri]];
+    g = contrastLUT[lutG[gi]];
+    b = contrastLUT[lutB[bi]];
 
     // 6. Push/pull tonal response
     if (pushPull !== 0) {
@@ -662,51 +655,37 @@ function applyLensDistortion(imageData: ImageData, amount: number): ImageData {
 // Color shift: adds color tint based on position in image
 function applyColorShift(imageData: ImageData, shiftX: number, shiftY: number, width: number, height: number): void {
   const data = imageData.data;
-  
-  // Normalize shift to 0-1 range for color intensity
-  const intensityX = Math.abs(shiftX) * 0.2; // Scale for reasonable effect
+  const intensityX = Math.abs(shiftX) * 0.2;
   const intensityY = Math.abs(shiftY) * 0.2;
 
   for (let y = 0; y < height; y++) {
+    const posY = y / height;
+
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-
-      // Calculate position-based shift (0 = none, 1 = max shift)
       const posX = x / width;
-      const posY = y / height;
-
-      // Apply color shifts based on position
       let rShift = 0;
       let gShift = 0;
       let bShift = 0;
 
-      // Horizontal shift (cyan to red)
-      if (shiftX > 0) {
-        // Red shift (toward red)
-        rShift = posX * intensityX * 30;
-        bShift -= posX * intensityX * 15; // Reduce blue for cyan
-      } else if (shiftX < 0) {
-        // Cyan shift (toward cyan)
-        bShift = (1 - posX) * intensityX * 30;
-        rShift -= (1 - posX) * intensityX * 15; // Reduce red
+      if (shiftX !== 0) {
+        const xFade = shiftX > 0 ? posX : 1 - posX;
+        const xAmount = intensityX * xFade;
+        rShift += xAmount * (shiftX > 0 ? 30 : -15);
+        bShift += xAmount * (shiftX > 0 ? -15 : 30);
       }
 
-      // Vertical shift (blue to yellow)
-      if (shiftY > 0) {
-        // Yellow shift (red + green)
-        rShift += posY * intensityY * 25;
-        gShift += posY * intensityY * 25;
-        bShift -= posY * intensityY * 20; // Reduce blue
-      } else if (shiftY < 0) {
-        // Blue shift
-        bShift += (1 - posY) * intensityY * 30;
-        rShift -= (1 - posY) * intensityY * 15;
-        gShift -= (1 - posY) * intensityY * 15;
+      if (shiftY !== 0) {
+        const yFade = shiftY > 0 ? posY : 1 - posY;
+        const yAmount = intensityY * yFade;
+        rShift += yAmount * (shiftY > 0 ? 25 : -15);
+        gShift += yAmount * (shiftY > 0 ? 25 : -15);
+        bShift += yAmount * (shiftY > 0 ? -20 : 30);
       }
 
-      data[idx] = Math.max(0, Math.min(255, data[idx] + rShift));
-      data[idx + 1] = Math.max(0, Math.min(255, data[idx + 1] + gShift));
-      data[idx + 2] = Math.max(0, Math.min(255, data[idx + 2] + bShift));
+      data[idx] = clampByte(data[idx] + rShift);
+      data[idx + 1] = clampByte(data[idx + 1] + gShift);
+      data[idx + 2] = clampByte(data[idx + 2] + bShift);
     }
   }
 }
