@@ -358,7 +358,7 @@ export const CANVAS_BLEND: Record<BlendMode, GlobalCompositeOperation> = {
   normal: 'source-over',
 };
 
-function getCanvasImageSourceDimensions(source: CanvasImageSource) {
+export function getCanvasImageSourceDimensions(source: CanvasImageSource) {
   if (source instanceof HTMLImageElement) {
     return { width: source.naturalWidth, height: source.naturalHeight };
   }

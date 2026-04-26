@@ -8,6 +8,7 @@ import {
   saveToStorage,
   CANVAS_BLEND,
   drawImageCover,
+  getCanvasImageSourceDimensions,
   rotateImageData,
   cropImageDataRect,
 } from './App.helpers';
@@ -832,23 +833,7 @@ export function useFilmLabState() {
     const baseCtx = baseCanvas.getContext('2d');
     if (!baseCtx) return;
 
-    if (frameColor !== 'none') {
-      baseCtx.fillStyle = frameColor === 'white' ? '#ffffff' : '#000000';
-      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
-    }
-
-    baseCtx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
-
-    if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
-      overlayImgRef.current.forEach((img) => {
-        if (!img) return;
-        baseCtx.save();
-        baseCtx.globalAlpha = overlayOpacity;
-        baseCtx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
-        drawImageCover(baseCtx, img, baseCanvas.width, baseCanvas.height);
-        baseCtx.restore();
-      });
-    }
+    let exportCanvas: HTMLCanvasElement = baseCanvas;
 
     if (selectedFrame && frameImgRef.current) {
       const img = frameImgRef.current;
@@ -863,21 +848,94 @@ export function useFilmLabState() {
       } else {
         drawWidth = baseCanvas.height * imgAR;
       }
-      baseCtx.drawImage(img, (baseCanvas.width - drawWidth) / 2, (baseCanvas.height - drawHeight) / 2, drawWidth, drawHeight);
+      const frameX = (baseCanvas.width - drawWidth) / 2;
+      const frameY = (baseCanvas.height - drawHeight) / 2;
+
+      if (frameBackground !== 'transparent') {
+        baseCtx.fillStyle = frameBackground;
+        baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+      } else {
+        baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
+      }
+
+      const { width: srcWidth, height: srcHeight } = getCanvasImageSourceDimensions(sourceCanvas);
+      const srcAR = srcWidth / srcHeight;
+      const targetAR = drawWidth / drawHeight;
+      let sx = 0;
+      let sy = 0;
+      let sw = srcWidth;
+      let sh = srcHeight;
+      if (srcAR > targetAR) {
+        sw = srcHeight * targetAR;
+        sx = (srcWidth - sw) / 2;
+      } else {
+        sh = srcWidth / targetAR;
+        sy = (srcHeight - sh) / 2;
+      }
+      baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
+
+      if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
+        overlayImgRef.current.forEach((imgOverlay) => {
+          if (!imgOverlay) return;
+          baseCtx.save();
+          baseCtx.globalAlpha = overlayOpacity;
+          baseCtx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
+          const { width: overlayWidth, height: overlayHeight } = getCanvasImageSourceDimensions(imgOverlay);
+          const overlayAR = overlayWidth / overlayHeight;
+          let overlaySrcX = 0;
+          let overlaySrcY = 0;
+          let overlaySrcW = overlayWidth;
+          let overlaySrcH = overlayHeight;
+          if (overlayAR > targetAR) {
+            overlaySrcW = overlayHeight * targetAR;
+            overlaySrcX = (overlayWidth - overlaySrcW) / 2;
+          } else {
+            overlaySrcH = overlayWidth / targetAR;
+            overlaySrcY = (overlayHeight - overlaySrcH) / 2;
+          }
+          baseCtx.drawImage(imgOverlay, overlaySrcX, overlaySrcY, overlaySrcW, overlaySrcH, frameX, frameY, drawWidth, drawHeight);
+          baseCtx.restore();
+        });
+      }
+
+      baseCtx.drawImage(img, frameX, frameY, drawWidth, drawHeight);
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = drawWidth;
+      croppedCanvas.height = drawHeight;
+      croppedCanvas.getContext('2d')!.drawImage(baseCanvas, frameX, frameY, drawWidth, drawHeight, 0, 0, drawWidth, drawHeight);
+      exportCanvas = croppedCanvas;
+    } else {
+      if (frameColor !== 'none') {
+        baseCtx.fillStyle = frameColor === 'white' ? '#ffffff' : '#000000';
+        baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+      }
+
+      baseCtx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
+
+      if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
+        overlayImgRef.current.forEach((img) => {
+          if (!img) return;
+          baseCtx.save();
+          baseCtx.globalAlpha = overlayOpacity;
+          baseCtx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
+          drawImageCover(baseCtx, img, baseCanvas.width, baseCanvas.height);
+          baseCtx.restore();
+        });
+      }
     }
 
     const normalized = ((rotation % 360) + 360) % 360;
     const radians = (normalized * Math.PI) / 180;
     const swap = normalized === 90 || normalized === 270;
     const dstCanvas = document.createElement('canvas');
-    dstCanvas.width = swap ? baseCanvas.height : baseCanvas.width;
-    dstCanvas.height = swap ? baseCanvas.width : baseCanvas.height;
+    dstCanvas.width = swap ? exportCanvas.height : exportCanvas.width;
+    dstCanvas.height = swap ? exportCanvas.width : exportCanvas.height;
     const ctx = dstCanvas.getContext('2d');
     if (!ctx) return;
     ctx.save();
     ctx.translate(dstCanvas.width / 2, dstCanvas.height / 2);
     ctx.rotate(radians);
-    ctx.drawImage(baseCanvas, -baseCanvas.width / 2, -baseCanvas.height / 2);
+    ctx.drawImage(exportCanvas, -exportCanvas.width / 2, -exportCanvas.height / 2);
     ctx.restore();
 
     const link = document.createElement('a');
