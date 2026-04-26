@@ -103,7 +103,6 @@ export function useFilmLabState() {
   const [levelsOutputBlack, setLevelsOutputBlack] = useState<number | null>(null);
   const [levelsOutputWhite, setLevelsOutputWhite] = useState<number | null>(null);
   const [processedImageData, setProcessedImageData] = useState<ImageData | null>(null);
-  const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -262,12 +261,9 @@ export function useFilmLabState() {
     return dstCtx.getImageData(0, 0, width, height);
   }, []);
 
-  useEffect(() => {
-    if (!imageData) {
-      setPreviewImageData(null);
-      return;
-    }
-    setPreviewImageData(getPreviewImageData(imageData));
+  const previewImageData = useMemo(() => {
+    if (!imageData) return null;
+    return getPreviewImageData(imageData);
   }, [imageData, getPreviewImageData]);
 
   useEffect(() => {

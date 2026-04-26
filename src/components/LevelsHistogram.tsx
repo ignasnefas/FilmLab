@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 
-export default function LevelsHistogram({
+function LevelsHistogram({
   histogram,
   inputBlack,
   inputWhite,
@@ -186,3 +186,5 @@ export default function LevelsHistogram({
     </div>
   );
 }
+
+export default memo(LevelsHistogram);
