@@ -277,8 +277,6 @@ export default function AppLayout() {
     if (e.touches.length > 1) {
       setShowOriginal(false);
       setIsTouchPinching(true);
-    } else if (e.touches.length === 1 && !isTouchPinching) {
-      setShowOriginal(true);
     }
   };
 
@@ -286,14 +284,14 @@ export default function AppLayout() {
     if (e.touches.length > 1) {
       setShowOriginal(false);
       setIsTouchPinching(true);
-    } else if (isTouchPinching && e.touches.length === 1) {
-      setIsTouchPinching(false);
     }
   };
 
-  const handleMultiTouchEnd = () => {
+  const handleMultiTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length === 0) {
+      setIsTouchPinching(false);
+    }
     setShowOriginal(false);
-    setIsTouchPinching(false);
   };
 
   const presetCountLabel = useMemo(() => `${currentPresetIndex + 1}/${displayedPresets.length}`, [currentPresetIndex, displayedPresets.length]);
@@ -1224,8 +1222,12 @@ export default function AppLayout() {
         <main
           ref={mainAreaRef}
           className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-visible"
+          onTouchStart={handleMultiTouchStart}
+          onTouchMove={handleMultiTouchMove}
+          onTouchEnd={handleMultiTouchEnd}
+          onTouchCancel={handleMultiTouchEnd}
           style={{
-            touchAction: 'pan-y',
+            touchAction: 'none',
             ...(isMobile
               ? {
                   paddingTop: '48px',
