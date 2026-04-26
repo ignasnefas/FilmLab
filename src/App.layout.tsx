@@ -517,7 +517,7 @@ export default function AppLayout() {
             <button
               type="button"
               onClick={() => toggleSection('presets')}
-              className="flex items-center gap-3 pl-3"
+              className="flex items-center gap-3"
             >
               <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.presets ? 'rotate-90' : ''}`} />
               <SectionHeader title="Presets" icon={<PresetIcon />} />
@@ -764,97 +764,102 @@ export default function AppLayout() {
                 </button>
               </div>
               <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.overlays ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
-                <div className="px-3 pb-2">
-                  <div className="flex gap-1 mb-2">
-                  {overlayCategoryOptions.map((cat) => {
-                    const isActive = overlayCategorySet.has(cat);
-                    return (
-                      <button
-                        key={cat}
-                        onClick={() => toggleOverlayCategory(cat)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
-                          isActive
-                            ? 'bg-zinc-700 text-zinc-100'
-                            : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
-                        }`}
-                      >
-                        {OVERLAYS[cat].label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="grid grid-cols-5 gap-1">
-                  <button
-                    onClick={() => setSelectedOverlays([])}
-                    className={`aspect-square rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
-                      selectedOverlays.length === 0
-                        ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
-                        : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-300 border-zinc-700/50 hover:border-zinc-500'
-                    }`}
-                  >
-                    None
-                  </button>
-                  {overlayItems.map(({ thumb, url, category }) => {
-                    const isSelected = selectedOverlays.includes(url);
-                    return (
-                      <button
-                        key={url}
-                        onClick={() => {
-                          setSelectedOverlays((prev) => {
-                            if (prev.includes(url)) {
-                              return prev.filter((item) => item !== url);
-                            }
-                            return [...prev, url];
-                          });
-                          if (!isSelected) setOverlayBlendByCategory((prev) => ({
-                            ...prev,
-                            [category]: OVERLAYS[category].defaultBlend,
-                          }));
-                        }}
-                        className={`aspect-square rounded overflow-hidden transition-all border ${
-                          isSelected
-                            ? 'border-2 border-amber-400 ring-2 ring-amber-400/70 shadow-[0_0_0_3px_rgba(251,191,36,0.24)]'
-                            : 'border-zinc-700/50 hover:border-zinc-500'
-                        }`}
-                      >
-                        <img src={thumb} className="w-full h-full object-cover" alt="" />
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedOverlays.length > 0 && (
-                  <div className="mt-2 space-y-1.5">
-                    <SliderControl
-                      label="Opacity"
-                      value={overlayOpacityByCategory[activeOverlayCategory]}
-                      min={0} max={1} step={0.01}
-                      defaultValue={OVERLAYS[activeOverlayCategory].defaultOpacity}
-                      onChange={(v) => setOverlayOpacityByCategory((prev) => ({
-                        ...prev,
-                        [activeOverlayCategory]: v ?? OVERLAYS[activeOverlayCategory].defaultOpacity,
-                      }))}
-                      format={(v) => `${Math.round(v * 100)}%`}
-                    />
-                    <div className="flex flex-wrap gap-1">
-                      {BLEND_MODES.map((mode) => (
+                <div className="px-3 pb-2 space-y-2">
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {overlayCategoryOptions.map((cat) => {
+                      const isActive = overlayCategorySet.has(cat);
+                      return (
                         <button
-                          key={mode.value}
-                          onClick={() => setOverlayBlendByCategory((prev) => ({
-                            ...prev,
-                            [activeOverlayCategory]: mode.value,
-                          }))}
-                          className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-all ${
-                            overlayBlendByCategory[activeOverlayCategory] === mode.value
-                              ? 'bg-amber-500 text-black'
-                              : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          key={cat}
+                          type="button"
+                          onClick={() => toggleOverlayCategory(cat)}
+                          className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                            isActive
+                              ? 'bg-zinc-700 text-zinc-100'
+                              : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
                           }`}
                         >
-                          {mode.label}
+                          {OVERLAYS[cat].label}
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
+                  <div className="grid grid-cols-5 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOverlays([])}
+                      className={`aspect-square rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
+                        selectedOverlays.length === 0
+                          ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
+                          : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-300 border-zinc-700/50 hover:border-zinc-500'
+                      }`}
+                    >
+                      None
+                    </button>
+                    {overlayItems.map(({ thumb, url, category }) => {
+                      const isSelected = selectedOverlays.includes(url);
+                      return (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => {
+                            setSelectedOverlays((prev) => {
+                              if (prev.includes(url)) {
+                                return prev.filter((item) => item !== url);
+                              }
+                              return [...prev, url];
+                            });
+                            if (!isSelected) setOverlayBlendByCategory((prev) => ({
+                              ...prev,
+                              [category]: OVERLAYS[category].defaultBlend,
+                            }));
+                          }}
+                          className={`aspect-square rounded overflow-hidden transition-all border ${
+                            isSelected
+                              ? 'border-2 border-amber-400 ring-2 ring-amber-400/70 shadow-[0_0_0_3px_rgba(251,191,36,0.24)]'
+                              : 'border-zinc-700/50 hover:border-zinc-500'
+                          }`}
+                        >
+                          <img src={thumb} className="w-full h-full object-cover" alt="" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedOverlays.length > 0 && (
+                    <div className="space-y-1.5">
+                      <SliderControl
+                        label="Opacity"
+                        value={overlayOpacityByCategory[activeOverlayCategory]}
+                        min={0} max={1} step={0.01}
+                        defaultValue={OVERLAYS[activeOverlayCategory].defaultOpacity}
+                        onChange={(v) => setOverlayOpacityByCategory((prev) => ({
+                          ...prev,
+                          [activeOverlayCategory]: v ?? OVERLAYS[activeOverlayCategory].defaultOpacity,
+                        }))}
+                        format={(v) => `${Math.round(v * 100)}%`}
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {BLEND_MODES.map((mode) => (
+                          <button
+                            key={mode.value}
+                            type="button"
+                            onClick={() => setOverlayBlendByCategory((prev) => ({
+                              ...prev,
+                              [activeOverlayCategory]: mode.value,
+                            }))}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-all ${
+                              overlayBlendByCategory[activeOverlayCategory] === mode.value
+                                ? 'bg-amber-500 text-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                            }`}
+                          >
+                            {mode.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
@@ -1063,7 +1068,6 @@ export default function AppLayout() {
                 </div>
               </div>
             </div>
-          </div>
         </aside>
 
         {sidebarOpen && (
