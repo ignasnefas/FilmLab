@@ -61,6 +61,9 @@ export default function AppLayout() {
     effects: true,
     opticalEffects: true,
     overlays: true,
+    frame: true,
+    filmFrame: true,
+    cropRotate: true,
   });
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -751,10 +754,18 @@ export default function AppLayout() {
               )}
 
               <div className="px-3 pt-1 pb-1">
-                <SectionHeader title="Overlays" icon={<OverlayIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('overlays')}
+                  className="flex items-center gap-3 w-full"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.overlays ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Overlays" icon={<OverlayIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-2">
-                <div className="flex gap-1 mb-2">
+              {openSections.overlays && (
+                <div className="px-3 pb-2">
+                  <div className="flex gap-1 mb-2">
                   {overlayCategoryOptions.map((cat) => {
                     const isActive = overlayCategorySet.has(cat);
                     return (
@@ -845,12 +856,21 @@ export default function AppLayout() {
                   </div>
                 )}
               </div>
+              )}
 
               <div className="px-3 pt-1 pb-1">
-                <SectionHeader title="Frame" icon={<FrameIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('frame')}
+                  className="flex items-center gap-3 w-full"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.frame ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Frame" icon={<FrameIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-3 space-y-1.5">
-                <div className="flex items-center gap-2">
+              {openSections.frame && (
+                <div className="px-3 pb-3 space-y-1.5">
+                  <div className="flex items-center gap-2">
                   {['none', 'white', 'black'].map((color) => (
                     <button
                       key={color}
@@ -878,12 +898,21 @@ export default function AppLayout() {
                   />
                 )}
               </div>
+              )}
 
               <div className="px-3 pt-1 pb-1">
-                <SectionHeader title="Film Frame" icon={<FrameIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('filmFrame')}
+                  className="flex items-center gap-3 w-full"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.filmFrame ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Film Frame" icon={<FrameIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-3">
-                <div className="grid grid-cols-4 gap-1.5">
+              {openSections.filmFrame && (
+                <div className="px-3 pb-3">
+                  <div className="grid grid-cols-4 gap-1.5">
                   <button
                     onClick={() => setSelectedFrame(null)}
                     className={`aspect-[3/2] rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
@@ -909,11 +938,20 @@ export default function AppLayout() {
                   ))}
                 </div>
               </div>
+              )}
 
               <div className="px-3 pt-1 pb-1">
-                <SectionHeader title="Crop & Rotate" icon={<CropIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('cropRotate')}
+                  className="flex items-center gap-3 w-full"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.cropRotate ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Crop & Rotate" icon={<CropIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-3 space-y-2">
+              {openSections.cropRotate && (
+                <div className="px-3 pb-3 space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {['original', '1:1', '4:3', '16:9'].map((ratio) => (
                     <button
@@ -961,12 +999,6 @@ export default function AppLayout() {
                       onChange={(v) => setRotation(Math.min(45, Math.max(-45, v ?? 0)))}
                     />
                   </div>
-                  <button
-                    onClick={() => setRotation(0)}
-                    className="px-3 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
-                  >
-                    Reset Rotation
-                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -984,6 +1016,7 @@ export default function AppLayout() {
                   </button>
                 </div>
               </div>
+              )}
 
               {hasOverrides && (
                 <div className="px-3 pb-3">
