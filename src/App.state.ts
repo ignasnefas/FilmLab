@@ -7,8 +7,7 @@ import {
   loadFromStorage,
   saveToStorage,
   CANVAS_BLEND,
-  drawImageCoverRotated,
-  drawImageContainRotated,
+  drawImageCover,
   rotateImageData,
   cropImageDataRect,
 } from './App.helpers';
@@ -796,13 +795,12 @@ export function useFilmLabState() {
   }, []);
 
   const resetTransform = useCallback(() => {
-    if (!originalImageDataRef.current) return;
     pushHistory();
-    setImageData(originalImageDataRef.current);
     setProcessedImageData(null);
     setCropMode(false);
     setCropRect(null);
     setRotation(0);
+    setZoom(1);
   }, [pushHistory]);
 
   useEffect(() => {
@@ -827,37 +825,61 @@ export function useFilmLabState() {
   const handleDownload = useCallback(() => {
     if (!canvasRef.current) return;
     const sourceCanvas = canvasRef.current;
-    const dstCanvas = document.createElement('canvas');
-    const ctx = dstCanvas.getContext('2d');
-    if (!ctx) return;
-    if (frameColor === 'none') {
-      dstCanvas.width = sourceCanvas.width;
-      dstCanvas.height = sourceCanvas.height;
-      ctx.drawImage(sourceCanvas, 0, 0);
-    } else {
-      const frameBg = frameColor === 'white' ? '#ffffff' : '#000000';
-      const thicknessPx = Math.round((frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
-      dstCanvas.width = sourceCanvas.width + thicknessPx * 2;
-      dstCanvas.height = sourceCanvas.height + thicknessPx * 2;
-      ctx.fillStyle = frameBg;
-      ctx.fillRect(0, 0, dstCanvas.width, dstCanvas.height);
-      ctx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
+    const thicknessPx = frameColor === 'none' ? 0 : Math.round((frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
+    const baseCanvas = document.createElement('canvas');
+    baseCanvas.width = sourceCanvas.width + thicknessPx * 2;
+    baseCanvas.height = sourceCanvas.height + thicknessPx * 2;
+    const baseCtx = baseCanvas.getContext('2d');
+    if (!baseCtx) return;
+
+    if (frameColor !== 'none') {
+      baseCtx.fillStyle = frameColor === 'white' ? '#ffffff' : '#000000';
+      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
     }
+
+    baseCtx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
+
     if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
       overlayImgRef.current.forEach((img) => {
         if (!img) return;
-        ctx.save();
-        ctx.globalAlpha = overlayOpacity;
-        ctx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
-        drawImageCoverRotated(ctx, img, dstCanvas.width, dstCanvas.height, rotation);
-        ctx.restore();
+        baseCtx.save();
+        baseCtx.globalAlpha = overlayOpacity;
+        baseCtx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
+        drawImageCover(baseCtx, img, baseCanvas.width, baseCanvas.height);
+        baseCtx.restore();
       });
     }
+
     if (selectedFrame && frameImgRef.current) {
-      ctx.save();
-      drawImageContainRotated(ctx, frameImgRef.current, dstCanvas.width, dstCanvas.height, rotation);
-      ctx.restore();
+      const img = frameImgRef.current;
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+      const imgAR = imgWidth / imgHeight;
+      const canvasAR = baseCanvas.width / baseCanvas.height;
+      let drawWidth = baseCanvas.width;
+      let drawHeight = baseCanvas.height;
+      if (imgAR > canvasAR) {
+        drawHeight = baseCanvas.width / imgAR;
+      } else {
+        drawWidth = baseCanvas.height * imgAR;
+      }
+      baseCtx.drawImage(img, (baseCanvas.width - drawWidth) / 2, (baseCanvas.height - drawHeight) / 2, drawWidth, drawHeight);
     }
+
+    const normalized = ((rotation % 360) + 360) % 360;
+    const radians = (normalized * Math.PI) / 180;
+    const swap = normalized === 90 || normalized === 270;
+    const dstCanvas = document.createElement('canvas');
+    dstCanvas.width = swap ? baseCanvas.height : baseCanvas.width;
+    dstCanvas.height = swap ? baseCanvas.width : baseCanvas.height;
+    const ctx = dstCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.save();
+    ctx.translate(dstCanvas.width / 2, dstCanvas.height / 2);
+    ctx.rotate(radians);
+    ctx.drawImage(baseCanvas, -baseCanvas.width / 2, -baseCanvas.height / 2);
+    ctx.restore();
+
     const link = document.createElement('a');
     link.download = `${selectedPreset.brand}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
     link.href = dstCanvas.toDataURL('image/jpeg', 0.95);
@@ -1162,6 +1184,7 @@ export function useFilmLabState() {
     setCustomPresetDescription,
     setCropRect,
     setZoom,
+    setRotation,
     setLoadingDemo,
     setIsAboutOpen,
     setFramingToolOpen,

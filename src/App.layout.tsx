@@ -101,7 +101,7 @@ export default function AppLayout() {
     resetOverrides,
     handleDownload,
     applyCrop,
-    applyRotation,
+    setRotation,
     resetTransform,
     handleSaveCustomPreset,
     deleteCustomPreset,
@@ -167,7 +167,15 @@ export default function AppLayout() {
 
   const presetCategories = ['all', 'color-negative', 'bw-negative', 'slide', 'cinema', 'custom', 'favorites'] as const;
   const activeCategory = showFavoritesOnly ? 'favorites' : filterType;
-  const frameWrapperStyle = selectedFrame && frameAspectRatio ? { aspectRatio: frameAspectRatio, maxWidth: '100%', maxHeight: 'calc(100vh - 52px)' } : { maxWidth: '100%', maxHeight: 'calc(100vh - 52px)' };
+  const normalizedRotation = ((rotation % 360) + 360) % 360;
+  const frameAspect = selectedFrame && frameAspectRatio
+    ? normalizedRotation === 90 || normalizedRotation === 270
+      ? 1 / frameAspectRatio
+      : frameAspectRatio
+    : null;
+  const frameWrapperStyle = frameAspect
+    ? { aspectRatio: frameAspect, maxWidth: '100%', maxHeight: 'calc(100vh - 52px)' }
+    : { maxWidth: '100%', maxHeight: 'calc(100vh - 52px)' };
 
   const selectPresetCategory = (category: typeof presetCategories[number]) => {
     if (category === 'favorites') {
@@ -760,18 +768,24 @@ export default function AppLayout() {
                     Cancel Crop
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="flex-1">
+                    <SliderControl
+                      label="Rotation"
+                      value={rotation}
+                      min={-180}
+                      max={180}
+                      step={1}
+                      defaultValue={0}
+                      format={(v) => `${v.toFixed(0)}°`}
+                      onChange={(v) => setRotation(v ?? 0)}
+                    />
+                  </div>
                   <button
-                    onClick={() => applyRotation(-90)}
-                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    onClick={() => setRotation(0)}
+                    className="px-3 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
                   >
-                    Rotate Left
-                  </button>
-                  <button
-                    onClick={() => applyRotation(90)}
-                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
-                  >
-                    Rotate Right
+                    Reset Rotation
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -914,7 +928,7 @@ export default function AppLayout() {
               onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
               onTouchEnd={() => setDraggingSplit(false)}
             >
-              <div className="relative inline-block max-w-full max-h-full overflow-hidden" style={{ ...frameWrapperStyle, transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+              <div className="relative inline-block max-w-full max-h-full overflow-hidden" style={{ ...frameWrapperStyle, transform: `scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: 'center center' }}>
                 <canvas ref={originalCanvasRef} className="w-full h-full block" style={{ objectFit: selectedFrame ? 'cover' : 'contain' }} />
                 <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}>
                   <canvas ref={canvasRef} className="w-full h-full block" style={{ objectFit: selectedFrame ? 'cover' : 'contain' }} />
@@ -948,7 +962,7 @@ export default function AppLayout() {
                           objectFit: 'cover',
                           opacity: overlayOpacity,
                           mixBlendMode: activeOverlayBlend,
-                          transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                          transform: 'translate(-50%, -50%)',
                           transformOrigin: 'center center',
                         }}
                         alt=""
@@ -968,7 +982,7 @@ export default function AppLayout() {
                         width: '100%',
                         height: '100%',
                         objectFit: 'contain',
-                        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                        transform: 'translate(-50%, -50%)',
                         transformOrigin: 'center center',
                       }}
                       alt=""
@@ -988,7 +1002,7 @@ export default function AppLayout() {
               onTouchCancel={() => setShowOriginal(false)}
             >
               <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding }}>
-                <div className="relative inline-block max-w-full overflow-hidden" style={{ ...frameWrapperStyle, transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+                <div className="relative inline-block max-w-full overflow-hidden" style={{ ...frameWrapperStyle, transform: `scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: 'center center' }}>
                   <canvas
                     ref={canvasRef}
                     className={`block w-full h-full shadow-2xl ${
@@ -1049,7 +1063,7 @@ export default function AppLayout() {
                         objectFit: 'cover',
                         opacity: overlayOpacity,
                         mixBlendMode: activeOverlayBlend,
-                        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                        transform: 'translate(-50%, -50%)',
                         transformOrigin: 'center center',
                       }}
                       alt=""
@@ -1066,7 +1080,7 @@ export default function AppLayout() {
                         width: '100%',
                         height: '100%',
                         objectFit: 'contain',
-                        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                        transform: 'translate(-50%, -50%)',
                         transformOrigin: 'center center',
                       }}
                       alt=""
