@@ -58,14 +58,20 @@ const SectionIcon = ({ children }: { children: ReactNode }) => (
   </span>
 );
 
+export const PlusIcon = () => (
+  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 export const UploadIcon = () => (
-  <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
   </svg>
 );
 
 export const DownloadIcon = () => (
-  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
   </svg>
 );
@@ -306,7 +312,7 @@ export const SliderLabelIcon = () => (
 
 export const StarIcon = ({ filled }: { filled?: boolean }) => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.262 3.885a1 1 0 00.95.69h4.084c.969 0 1.371 1.24.588 1.81l-3.305 2.405a1 1 0 00-.364 1.118l1.262 3.885c.3.921-.755 1.688-1.54 1.118l-3.305-2.405a1 1 0 00-1.176 0l-3.305 2.405c-.784.57-1.838-.197-1.539-1.118l1.262-3.885a1 1 0 00-.364-1.118L2.115 9.312c-.783-.57-.38-1.81.588-1.81h4.084a1 1 0 00.95-.69l1.262-3.885z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
   </svg>
 );
 

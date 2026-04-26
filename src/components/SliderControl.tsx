@@ -29,18 +29,18 @@ export default function SliderControl({
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-0.5">
-        <label className={`text-[11px] font-medium transition-colors ${isModified ? 'text-amber-500/80' : 'text-zinc-500'}`}>
+        <label className={`text-[11px] font-medium transition-colors ${isModified ? 'text-amber-500/80' : 'text-zinc-300'}`}>
           <span className="inline-flex items-center gap-2">
             {displayedIcon}
             {label}
           </span>
         </label>
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-zinc-600 font-mono tabular-nums">{format(value)}</span>
+          <span className="text-[10px] text-zinc-400 font-mono tabular-nums">{format(value)}</span>
           {isModified && (
             <button
               onClick={(e) => { e.stopPropagation(); onChange(null); }}
-              className="text-zinc-700 hover:text-amber-400 transition-colors p-0.5"
+              className="text-zinc-400 hover:text-amber-300 transition-colors p-0.5"
               title="Reset"
             >
               <ResetIcon />

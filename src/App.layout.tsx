@@ -13,6 +13,7 @@ import {
   typeColors,
   typeBadge,
   DEMO_IMAGES,
+  PlusIcon,
   UploadIcon,
   DownloadIcon,
   CompareIcon,
@@ -450,16 +451,20 @@ export default function AppLayout() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    className="p-2 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    aria-label="Add images"
                   >
-                    Add Images
+                    <PlusIcon />
+                    <span className="sr-only">Add images</span>
                   </button>
                   {batchImages.length > 0 && (
                     <button
                       onClick={handleDownloadBatch}
-                      className="px-2 py-1 rounded-md bg-amber-500 text-black hover:bg-amber-400 transition-colors"
+                      className="p-2 rounded-md bg-amber-500 text-black hover:bg-amber-400 transition-colors"
+                      aria-label="Export images"
                     >
-                      Export Images
+                      <DownloadIcon />
+                      <span className="sr-only">Export images</span>
                     </button>
                   )}
                 </div>
@@ -597,7 +602,7 @@ export default function AppLayout() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-zinc-600 font-medium uppercase tracking-wider">{preset.brand}</span>
+                          <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider">{preset.brand}</span>
                           {favorites.includes(preset.id) && (
                             <span className="text-amber-400 text-[10px]">★</span>
                           )}
