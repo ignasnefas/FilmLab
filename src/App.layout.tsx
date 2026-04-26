@@ -635,9 +635,11 @@ export default function AppLayout() {
                             ×
                           </button>
                         )}
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors[preset.type]}`}>
-                          {typeBadge[preset.type]}
-                        </span>
+                        {preset.id !== 'none' && (
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors[preset.type]}`}>
+                            {typeBadge[preset.type]}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {isSelected && (
@@ -1381,9 +1383,11 @@ export default function AppLayout() {
 
           {image && !splitView && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2.5 bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/50 rounded-xl px-3 py-1.5 text-[11px] whitespace-nowrap">
-              <span className={`px-1.5 py-0.5 rounded border font-medium text-[9px] ${typeColors[selectedPreset.type]}`}>
-                {typeBadge[selectedPreset.type]}
-              </span>
+              {selectedPreset.id !== 'none' && (
+                <span className={`px-1.5 py-0.5 rounded border font-medium text-[9px] ${typeColors[selectedPreset.type]}`}>
+                  {typeBadge[selectedPreset.type]}
+                </span>
+              )}
               <span className="font-semibold text-zinc-200 truncate">{selectedPreset.brand} {selectedPreset.name}</span>
               <span className="text-zinc-700">|</span>
               <span className="text-zinc-600">{Math.round(zoom * 100)}%</span>
