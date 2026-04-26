@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { FrameColor, CropRatio } from './App.types';
 import type { OverlayCategory } from './App.helpers';
 import FramingTool from './FramingTool';
@@ -52,6 +52,17 @@ import {
 
 export default function AppLayout() {
   const state = useFilmLabState();
+  const [openSections, setOpenSections] = useState({
+    tone: true,
+    curves: true,
+    filmGrain: true,
+    effects: true,
+    opticalEffects: true,
+    overlays: true,
+  });
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const {
     image,
@@ -590,9 +601,17 @@ export default function AppLayout() {
 
             <div className="border-t border-zinc-800/50">
               <div className="px-3 pt-3 pb-1">
-                <SectionHeader title="Tone" icon={<ToneIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('tone')}
+                  className="flex items-center gap-3"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.tone ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Tone" icon={<ToneIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-2 space-y-1.5">
+              {openSections.tone && (
+                <div className="px-3 pb-2 space-y-1.5">
                 <SliderControl label="White Balance" value={eff.whiteBalance} min={-1} max={1} step={0.05}
                   defaultValue={selectedPreset.whiteBalance} onChange={setWhiteBalance} format={(v) => v > 0 ? `+${(v * 100).toFixed(0)}% Warm` : v < 0 ? `${(v * 100).toFixed(0)}% Cool` : 'Neutral'} icon={<WhiteBalanceIcon />} />
                 <SliderControl label="Exposure" value={exposure} min={-2} max={2} step={0.05}
@@ -606,8 +625,16 @@ export default function AppLayout() {
                 <SliderControl label="Push / Pull" value={eff.pushPull} min={-1} max={1} step={0.01}
                   defaultValue={selectedPreset.pushPull ?? 0} onChange={setPushPullAmount} format={(v) => v > 0 ? `Push +${(v * 100).toFixed(0)}%` : v < 0 ? `Pull ${Math.abs(Math.round(v * 100))}%` : 'Neutral'} icon={<ContrastIcon />} />
               </div>
-              <div className="px-3 pt-1 pb-1 flex items-center justify-between">
-                <SectionHeader title="Curves" icon={<CurvesIcon />} />
+              )}
+              <div className="px-3 pt-1 pb-1 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('curves')}
+                  className="flex items-center gap-3"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.curves ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Curves" icon={<CurvesIcon />} />
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -620,14 +647,16 @@ export default function AppLayout() {
                   Reset
                 </button>
               </div>
-              <div className="px-3 pb-3">
-                <CurvesEditor
-                  activeChannel={curveChannel}
-                  setActiveChannel={setCurveChannel}
-                  curves={{ r: curvePointsR, g: curvePointsG, b: curvePointsB, master: curvePointsMaster }}
-                  onCurveChange={handleCurveChange}
-                />
-              </div>
+              {openSections.curves && (
+                <div className="px-3 pb-3">
+                  <CurvesEditor
+                    activeChannel={curveChannel}
+                    setActiveChannel={setCurveChannel}
+                    curves={{ r: curvePointsR, g: curvePointsG, b: curvePointsB, master: curvePointsMaster }}
+                    onCurveChange={handleCurveChange}
+                  />
+                </div>
+              )}
               <div className="px-3 pb-2 space-y-1.5">
                 <SliderControl label="Saturation" value={eff.saturation} min={0} max={2} step={0.01}
                   defaultValue={selectedPreset.saturation} onChange={setSaturationAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<SaturationIcon />} />
@@ -636,7 +665,14 @@ export default function AppLayout() {
               </div>
 
               <div className="px-3 pt-1 pb-1 flex items-center justify-between">
-                <SectionHeader title="Film Grain" icon={<GrainIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('filmGrain')}
+                  className="flex items-center gap-3"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.filmGrain ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Film Grain" icon={<GrainIcon />} />
+                </button>
                 <button
                   onClick={() => setGrainSeed(Math.floor(Math.random() * 100000))}
                   className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-amber-400 transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800/60"
@@ -645,29 +681,48 @@ export default function AppLayout() {
                   <DiceIcon /> New Pattern
                 </button>
               </div>
-              <div className="px-3 pb-2 space-y-1.5">
-                <SliderControl label="Amount" value={eff.grainAmount} min={0} max={1} step={0.01}
-                  defaultValue={selectedPreset.grainAmount} onChange={setGrainAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
-                <SliderControl label="Size" value={eff.grainSize} min={0.3} max={5} step={0.1}
-                  defaultValue={selectedPreset.grainSize} onChange={setGrainSize} format={(v) => v.toFixed(1)} icon={<GrainIconSmall />} />
-                <SliderControl label="Roughness" value={eff.grainRoughness} min={0} max={1} step={0.01}
-                  defaultValue={selectedPreset.grainRoughness} onChange={setGrainRoughness} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
-              </div>
+              {openSections.filmGrain && (
+                <div className="px-3 pb-2 space-y-1.5">
+                  <SliderControl label="Amount" value={eff.grainAmount} min={0} max={1} step={0.01}
+                    defaultValue={selectedPreset.grainAmount} onChange={setGrainAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
+                  <SliderControl label="Size" value={eff.grainSize} min={0.3} max={5} step={0.1}
+                    defaultValue={selectedPreset.grainSize} onChange={setGrainSize} format={(v) => v.toFixed(1)} icon={<GrainIconSmall />} />
+                  <SliderControl label="Roughness" value={eff.grainRoughness} min={0} max={1} step={0.01}
+                    defaultValue={selectedPreset.grainRoughness} onChange={setGrainRoughness} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
+                </div>
+              )}
 
               <div className="px-3 pt-1 pb-1">
-                <SectionHeader title="Effects" icon={<EffectsIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('effects')}
+                  className="flex w-full items-center justify-between gap-3"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.effects ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Effects" icon={<EffectsIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-2 space-y-1.5">
-                <SliderControl label="Vignette" value={eff.vignette} min={0} max={0.6} step={0.01}
-                  defaultValue={selectedPreset.vignette} onChange={setVignetteAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<VignetteIcon />} />
-                <SliderControl label="Halation" value={eff.halation} min={0} max={0.8} step={0.01}
-                  defaultValue={selectedPreset.halation} onChange={setHalationAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<HalationIcon />} />
-              </div>
+              {openSections.effects && (
+                <div className="px-3 pb-2 space-y-1.5">
+                  <SliderControl label="Vignette" value={eff.vignette} min={0} max={0.6} step={0.01}
+                    defaultValue={selectedPreset.vignette} onChange={setVignetteAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<VignetteIcon />} />
+                  <SliderControl label="Halation" value={eff.halation} min={0} max={0.8} step={0.01}
+                    defaultValue={selectedPreset.halation} onChange={setHalationAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<HalationIcon />} />
+                </div>
+              )}
 
               <div className="px-3 pt-1 pb-1">
-                <SectionHeader title="Optical Effects" icon={<OpticalIcon />} />
+                <button
+                  type="button"
+                  onClick={() => toggleSection('opticalEffects')}
+                  className="flex w-full items-center justify-between gap-3"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.opticalEffects ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Optical Effects" icon={<OpticalIcon />} />
+                </button>
               </div>
-              <div className="px-3 pb-3 space-y-1.5">
+              {openSections.opticalEffects && (
+                <div className="px-3 pb-3 space-y-1.5">
                 <SliderControl label="Purple Fringing" value={eff.purpleFringing} min={0} max={1} step={0.01}
                   defaultValue={selectedPreset.purpleFringing} onChange={setPurpleFringing} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<PurpleFringingIcon />} />
                 <SliderControl label="Lens Distortion" value={eff.lensDistortion} min={0} max={0.5} step={0.01}
@@ -677,6 +732,7 @@ export default function AppLayout() {
                 <SliderControl label="Color Shift Y" value={eff.colorShiftY} min={-1} max={1} step={0.05}
                   defaultValue={selectedPreset.colorShiftY} onChange={setColorShiftY} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<ColorShiftIcon />} />
               </div>
+              )}
 
               <div className="px-3 pt-1 pb-1">
                 <SectionHeader title="Overlays" icon={<OverlayIcon />} />

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, SVGProps } from 'react';
 
 export type BlendMode = 'screen' | 'multiply' | 'overlay' | 'soft-light' | 'normal';
 export type OverlayCategory = 'lightleaks' | 'bokeh' | 'textures' | 'paper';
@@ -316,14 +316,14 @@ export const MenuIcon = () => (
   </svg>
 );
 
-export const ChevronLeftIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+export const ChevronLeftIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={props.className ?? 'w-5 h-5'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
   </svg>
 );
 
-export const ChevronRightIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+export const ChevronRightIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={props.className ?? 'w-5 h-5'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
 );
