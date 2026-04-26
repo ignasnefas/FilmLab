@@ -153,10 +153,10 @@ function LevelsHistogram({
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950 overflow-hidden">
       <div className="px-3 pt-3 pb-2">
-        <div ref={canvasWrapperRef} className="relative h-24 rounded-lg overflow-hidden bg-zinc-900">
+        <div ref={canvasWrapperRef} className="relative h-20 rounded-lg overflow-hidden bg-zinc-900">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
-        <div ref={histogramRef} className="relative mt-2 h-7 rounded-lg overflow-hidden bg-zinc-900">
+        <div ref={histogramRef} className="relative mt-2 h-6 rounded-lg overflow-hidden bg-zinc-900">
           <div className="absolute inset-0 bg-gradient-to-r from-black via-zinc-800 to-white opacity-90" />
           {['inputBlack', 'gamma', 'inputWhite'].map((marker) => {
             const position = marker === 'inputBlack'
@@ -181,9 +181,9 @@ function LevelsHistogram({
           })}
         </div>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-zinc-500">
-          <span>Blacks: {Math.round(inputBlack * 255)}</span>
-          <span className="text-center">Mids: {gamma.toFixed(2)}</span>
-          <span className="text-right">Highlights: {Math.round(inputWhite * 255)}</span>
+          <span className="whitespace-nowrap">Blacks: {Math.round(inputBlack * 255)}</span>
+          <span className="text-center whitespace-nowrap">Mids: {gamma.toFixed(2)}</span>
+          <span className="text-right whitespace-nowrap">Highs: {Math.round(inputWhite * 255)}</span>
         </div>
       </div>
     </div>

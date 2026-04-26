@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { FrameColor, CropRatio } from './App.types';
 import type { OverlayCategory } from './App.helpers';
 import FramingTool from './FramingTool';
@@ -67,6 +67,76 @@ export default function AppLayout() {
     cropRotate: false,
     customPreset: false,
   });
+  const [sidebarWidth, setSidebarWidth] = useState(310);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileSheetHeight, setMobileSheetHeight] = useState(55);
+  const [isResizing, setIsResizing] = useState(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(310);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(55);
+
+  useEffect(() => {
+    const updateIsMobile = () => setIsMobile(window.innerWidth < 768);
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
+  const { sidebarOpen } = state;
+  const sidebarStyle = sidebarOpen
+    ? isMobile
+      ? { width: '100%', height: `${mobileSheetHeight}vh` }
+      : { width: sidebarWidth }
+    : { width: 0 };
+
+  const onResizeMove = useCallback((event: PointerEvent) => {
+    const nextWidth = startWidthRef.current + (event.clientX - startXRef.current);
+    setSidebarWidth(Math.min(520, Math.max(220, nextWidth)));
+  }, []);
+
+  const onMobileResizeMove = useCallback((event: PointerEvent) => {
+    const deltaY = startYRef.current - event.clientY;
+    const deltaVh = (deltaY / window.innerHeight) * 100;
+    const nextHeight = startHeightRef.current + deltaVh;
+    setMobileSheetHeight(Math.min(75, Math.max(35, nextHeight)));
+  }, []);
+
+  const stopResize = useCallback(() => {
+    setIsResizing(false);
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', stopResize);
+    window.removeEventListener('pointermove', onMobileResizeMove);
+    window.removeEventListener('pointerup', stopResize);
+  }, [onResizeMove, onMobileResizeMove]);
+
+  const handleResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isMobile) return;
+    event.preventDefault();
+    setIsResizing(true);
+    startXRef.current = event.clientX;
+    startWidthRef.current = sidebarWidth;
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', stopResize);
+  };
+
+  const handleMobileResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!isMobile) return;
+    event.preventDefault();
+    setIsResizing(true);
+    startYRef.current = event.clientY;
+    startHeightRef.current = mobileSheetHeight;
+    window.addEventListener('pointermove', onMobileResizeMove);
+    window.addEventListener('pointerup', stopResize);
+  };
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('pointermove', onResizeMove);
+      window.removeEventListener('pointerup', stopResize);
+    };
+  }, [onResizeMove, stopResize]);
+
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
@@ -95,7 +165,6 @@ export default function AppLayout() {
     frameThickness,
     exposure,
     loadingDemo,
-    sidebarOpen,
     isAboutOpen,
     zoom,
     overlayCategories,
@@ -210,28 +279,33 @@ export default function AppLayout() {
   const frameAspect = selectedFrame && frameAspectRatio
     ? frameAspectRatio
     : null;
-  const imageMaxHeight = 'calc(100vh - 116px)';
+  const bottomSheetHeight = sidebarOpen && isMobile ? `${mobileSheetHeight}vh` : '0px';
+  const imageMaxHeight = isMobile
+    ? `calc(100vh - 64px - ${bottomSheetHeight})`
+    : 'calc(100vh - 116px)';
   const frameWrapperStyle = frameAspect
     ? {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '100%',
-        height: '100%',
+        width: 'auto',
+        height: 'auto',
         aspectRatio: frameAspect,
-        maxWidth: '100%',
+        maxWidth: isMobile ? '80vw' : '100%',
         maxHeight: imageMaxHeight,
         minHeight: 0,
+        marginInline: 'auto',
       }
     : {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        maxWidth: '100%',
+        width: 'auto',
+        height: 'auto',
+        maxWidth: isMobile ? '80vw' : '100%',
         maxHeight: imageMaxHeight,
         minHeight: 0,
+        marginInline: 'auto',
       };
   const wrapperTransformStyle = zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: 'center center' } : undefined;
 
@@ -433,18 +507,15 @@ export default function AppLayout() {
       </header>
 
       <div className="flex flex-1 overflow-hidden min-h-0">
-        <aside className={`${sidebarOpen ? 'w-[310px] min-w-[310px]' : 'w-0 min-w-0'} md:w-[310px] md:min-w-[310px] border-r border-zinc-800/50 bg-zinc-900/40 flex flex-col min-h-0 overflow-y-auto transition-all duration-200 ${sidebarOpen ? 'md:relative fixed md:static top-16 left-0 right-auto bottom-0 z-40' : ''}`}>
-          <div className="md:hidden px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <img src={logo} alt="FilmLab logo" className="w-8 h-8 object-contain" />
-              <div>
-                <h1 className="text-sm font-bold tracking-tight leading-tight">FilmLab</h1>
-                <p className="text-[9px] text-zinc-500 tracking-[0.2em] uppercase leading-tight">Analogue Film Emulation</p>
-              </div>
-            </div>
+        <aside
+          style={sidebarStyle}
+          className={`border-t md:border-t-0 md:border-r border-zinc-800/50 bg-zinc-900/40 backdrop-blur-sm flex flex-col min-h-0 overflow-y-auto transition-all duration-200 ${sidebarOpen ? 'fixed inset-x-0 bottom-0 h-[55vh] z-40 md:relative md:static md:top-16 md:left-0 md:right-auto md:h-auto' : 'w-0 min-w-0'}`}
+        >
+          <div className="md:hidden py-3 border-b border-zinc-800/40 bg-zinc-900/40 flex items-center justify-center">
+            <div className="h-1.5 w-16 rounded-full bg-zinc-700" />
           </div>
 
-          <div className="sticky top-0 z-10 px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
+          <div className="md:sticky md:top-0 z-20 px-3 pt-3 pb-2 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur-xl shadow-sm">
             <div className="mt-3 px-1 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                 <span>Images ({batchImages.length})</span>
@@ -500,7 +571,7 @@ export default function AppLayout() {
                 </>
               )}
             </div>
-            <div className="pb-4 border-b border-zinc-800/30">
+            <div className="mt-4 pb-4 border-b border-zinc-800/30">
               <div className="flex items-center justify-between gap-3">
                 <button
                   type="button"
@@ -1108,6 +1179,14 @@ export default function AppLayout() {
 
         {sidebarOpen && (
           <div
+            className="hidden md:block w-6 touch-none cursor-col-resize bg-transparent hover:bg-zinc-600/20"
+            onPointerDown={handleResizePointerDown}
+            title="Resize sidebar"
+          />
+        )}
+
+        {sidebarOpen && (
+          <div
             className="md:hidden fixed inset-0 bg-black/50 z-30"
             onClick={() => setSidebarOpen(false)}
           />
@@ -1116,6 +1195,12 @@ export default function AppLayout() {
         <main
           ref={mainAreaRef}
           className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-visible"
+          style={isMobile
+            ? {
+                paddingTop: '48px',
+                height: sidebarOpen ? `calc(100vh - 64px - ${bottomSheetHeight})` : 'calc(100vh - 64px)',
+              }
+            : undefined}
         >
           {!image ? (
             <div className="flex flex-col items-center gap-6 max-w-lg px-6">
@@ -1176,12 +1261,12 @@ export default function AppLayout() {
               onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
               onTouchEnd={() => setDraggingSplit(false)}
             >
-              <div className="relative inline-block max-w-full max-h-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle }}>
+              <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible" style={{ marginInline: 'auto', ...frameWrapperStyle, ...wrapperTransformStyle }}>
                 <canvas
                   ref={originalCanvasRef}
                   className="w-full h-full block"
                   style={{
-                    objectFit: selectedFrame ? 'cover' : 'contain',
+                    objectFit: isMobile ? 'contain' : selectedFrame ? 'cover' : 'contain',
                     maxWidth: '100%',
                     maxHeight: '100%',
                     width: '100%',
@@ -1193,7 +1278,7 @@ export default function AppLayout() {
                     ref={canvasRef}
                     className="w-full h-full block"
                     style={{
-                      objectFit: selectedFrame ? 'cover' : 'contain',
+                      objectFit: isMobile ? 'contain' : selectedFrame ? 'cover' : 'contain',
                       maxWidth: '100%',
                       maxHeight: '100%',
                       width: '100%',
@@ -1269,14 +1354,14 @@ export default function AppLayout() {
               onTouchEnd={() => setShowOriginal(false)}
               onTouchCancel={() => setShowOriginal(false)}
             >
-              <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding }}>
-                <div className="relative inline-block w-full max-w-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle }}>
+              <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding, width: '100%' }}>
+                <div className="relative inline-block w-auto max-w-full overflow-visible" style={{ marginInline: 'auto', ...frameWrapperStyle, ...wrapperTransformStyle }}>
                   <canvas
                     ref={canvasRef}
                     className="block shadow-2xl opacity-100"
                     style={{
                       imageRendering: 'auto',
-                      objectFit: selectedFrame ? 'cover' : 'contain',
+                      objectFit: isMobile ? 'contain' : selectedFrame ? 'cover' : 'contain',
                       maxWidth: '100%',
                       maxHeight: '100%',
                       width: 'auto',
