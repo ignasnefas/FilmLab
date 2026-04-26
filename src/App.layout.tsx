@@ -6,6 +6,7 @@ import logo from './favicon/logo.png';
 import SectionHeader from './components/SectionHeader';
 import SliderControl from './components/SliderControl';
 import LevelsHistogram from './components/LevelsHistogram';
+import CurvesEditor from './components/CurvesEditor';
 import { useFilmLabState } from './App.state';
 import {
   typeLabels,
@@ -43,6 +44,7 @@ import {
   MenuIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CurvesIcon,
   OVERLAYS,
   FRAME_URLS,
   BLEND_MODES,
@@ -142,6 +144,16 @@ export default function AppLayout() {
     setLevelsInputBlack,
     setLevelsInputWhite,
     setLevelsGamma,
+    curveChannel,
+    setCurveChannel,
+    curvePointsR,
+    setCurvePointsR,
+    curvePointsG,
+    setCurvePointsG,
+    curvePointsB,
+    setCurvePointsB,
+    curvePointsMaster,
+    setCurvePointsMaster,
     setCustomPresetName,
     setCustomPresetDescription,
     setCropRect,
@@ -206,6 +218,17 @@ export default function AppLayout() {
       setFilterType(category);
       setShowFavoritesOnly(false);
     }
+  };
+
+  const handleCurveChange = (channel: 'master' | 'r' | 'g' | 'b', points: [number, number][]) => {
+    if (channel === 'master') {
+      setCurvePointsMaster(points);
+      setCurvePointsR(points);
+      setCurvePointsG(points);
+      setCurvePointsB(points);
+    } else if (channel === 'r') setCurvePointsR(points);
+    else if (channel === 'g') setCurvePointsG(points);
+    else setCurvePointsB(points);
   };
 
   const overlayCategoryOptions = ['lightleaks', 'bokeh', 'textures', 'paper'] as const;
@@ -582,6 +605,28 @@ export default function AppLayout() {
                   defaultValue={selectedPreset.crossProcess ?? 0} onChange={setCrossProcessAmount} format={(v) => v > 0 ? `+${(v * 100).toFixed(0)}% Magenta` : v < 0 ? `${(v * 100).toFixed(0)}% Green` : 'Neutral'} icon={<ColorShiftIcon />} />
                 <SliderControl label="Push / Pull" value={eff.pushPull} min={-1} max={1} step={0.01}
                   defaultValue={selectedPreset.pushPull ?? 0} onChange={setPushPullAmount} format={(v) => v > 0 ? `Push +${(v * 100).toFixed(0)}%` : v < 0 ? `Pull ${Math.abs(Math.round(v * 100))}%` : 'Neutral'} icon={<ContrastIcon />} />
+              </div>
+              <div className="px-3 pt-1 pb-1 flex items-center justify-between">
+                <SectionHeader title="Curves" icon={<CurvesIcon />} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurvePointsR(selectedPreset.curves.r.map(([x, y]) => [x, y]));
+                    setCurvePointsG(selectedPreset.curves.g.map(([x, y]) => [x, y]));
+                    setCurvePointsB(selectedPreset.curves.b.map(([x, y]) => [x, y]));
+                  }}
+                  className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 hover:text-amber-400 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+              <div className="px-3 pb-3">
+                <CurvesEditor
+                  activeChannel={curveChannel}
+                  setActiveChannel={setCurveChannel}
+                  curves={{ r: curvePointsR, g: curvePointsG, b: curvePointsB, master: curvePointsMaster }}
+                  onCurveChange={handleCurveChange}
+                />
               </div>
               <div className="px-3 pb-2 space-y-1.5">
                 <SliderControl label="Saturation" value={eff.saturation} min={0} max={2} step={0.01}

@@ -115,6 +115,17 @@ export const ToneIcon = () => (
   </SectionIcon>
 );
 
+export const CurvesIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M3 17c5-6 9-10 14-10" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="5" cy="13" r="1.25" fill="currentColor" />
+      <circle cx="11" cy="7" r="1.25" fill="currentColor" />
+      <circle cx="17" cy="5" r="1.25" fill="currentColor" />
+    </svg>
+  </SectionIcon>
+);
+
 export const GrainIcon = () => (
   <SectionIcon>
     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>

@@ -102,6 +102,16 @@ export function useFilmLabState() {
   const [levelsGamma, setLevelsGamma] = useState<number | null>(null);
   const [levelsOutputBlack, setLevelsOutputBlack] = useState<number | null>(null);
   const [levelsOutputWhite, setLevelsOutputWhite] = useState<number | null>(null);
+  const [curveChannel, setCurveChannel] = useState<'master' | 'r' | 'g' | 'b'>('master');
+  const [curvePointsR, setCurvePointsR] = useState<[number, number][]>(() => filmPresets[0].curves.r.map(([x, y]) => [x, y]));
+  const [curvePointsG, setCurvePointsG] = useState<[number, number][]>(() => filmPresets[0].curves.g.map(([x, y]) => [x, y]));
+  const [curvePointsB, setCurvePointsB] = useState<[number, number][]>(() => filmPresets[0].curves.b.map(([x, y]) => [x, y]));
+  const [curvePointsMaster, setCurvePointsMaster] = useState<[number, number][]>(() =>
+    filmPresets[0].curves.r.map(([x, y], index) => [
+      x,
+      (y + filmPresets[0].curves.g[index][1] + filmPresets[0].curves.b[index][1]) / 3,
+    ] as [number, number]),
+  );
   const [processedImageData, setProcessedImageData] = useState<ImageData | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -143,8 +153,15 @@ export function useFilmLabState() {
     setLevelsGamma(null);
     setLevelsOutputBlack(null);
     setLevelsOutputWhite(null);
+    setCurvePointsR(selectedPreset.curves.r.map(([x, y]) => [x, y]));
+    setCurvePointsG(selectedPreset.curves.g.map(([x, y]) => [x, y]));
+    setCurvePointsB(selectedPreset.curves.b.map(([x, y]) => [x, y]));
+    setCurvePointsMaster(selectedPreset.curves.r.map(([x, y], index) => [
+      x,
+      (y + selectedPreset.curves.g[index][1] + selectedPreset.curves.b[index][1]) / 3,
+    ] as [number, number]));
     setGrainSeed(Math.floor(Math.random() * 100000));
-  }, [selectedPreset.id]);
+  }, [selectedPreset.id, selectedPreset.curves]);
 
   useEffect(() => {
     setShowOriginal(false);
@@ -174,6 +191,15 @@ export function useFilmLabState() {
     crossProcessOverride: crossProcessAmount ?? undefined,
     pushPullOverride: pushPullAmount ?? undefined,
   }), [grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
+
+  const currentPreset = useMemo(() => ({
+    ...selectedPreset,
+    curves: {
+      r: curvePointsR,
+      g: curvePointsG,
+      b: curvePointsB,
+    },
+  }), [selectedPreset, curvePointsR, curvePointsG, curvePointsB]);
 
   const frameBackground = frameColor === 'white' ? '#ffffff' : frameColor === 'black' ? '#000000' : 'transparent';
   const framePadding = frameColor !== 'none' ? `${frameThickness}%` : '0';
@@ -279,7 +305,7 @@ export function useFilmLabState() {
       requestAnimationFrame(async () => {
         try {
           const source = previewImageData ?? imageData;
-          const result = await processImageInWorker(source, selectedPreset, currentParams, grainSeed);
+          const result = await processImageInWorker(source, currentPreset, currentParams, grainSeed);
           if (requestId === latestPreviewRequestRef.current) {
             setProcessedImageData(result);
             processedCanvasRef.current = canvasRef.current;
@@ -295,7 +321,7 @@ export function useFilmLabState() {
     return () => {
       if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
     };
-  }, [imageData, previewImageData, selectedPreset, currentParams, grainSeed, processImageInWorker]);
+  }, [imageData, previewImageData, currentPreset, currentParams, grainSeed, processImageInWorker]);
 
   const renderPreviewCanvas = useCallback((canvas: HTMLCanvasElement, source: ImageData, angle: number) => {
     if (canvas.width !== source.width || canvas.height !== source.height) {
@@ -344,7 +370,7 @@ export function useFilmLabState() {
   }, [selectedFrame]);
 
   const getCurrentBatchEditState = useCallback((): BatchImageEditState => ({
-    selectedPreset,
+    selectedPreset: currentPreset,
     frameColor,
     frameThickness,
     selectedOverlays,
@@ -934,7 +960,7 @@ export function useFilmLabState() {
     setProcessing(true);
 
     try {
-      const processed = await processImageInWorker(imageData, selectedPreset, currentParams, grainSeed);
+      const processed = await processImageInWorker(imageData, currentPreset, currentParams, grainSeed);
       const sourceCanvas = document.createElement('canvas');
       sourceCanvas.width = processed.width;
       sourceCanvas.height = processed.height;
@@ -1119,6 +1145,13 @@ export function useFilmLabState() {
     setLevelsGamma(null);
     setLevelsOutputBlack(null);
     setLevelsOutputWhite(null);
+    setCurvePointsR(selectedPreset.curves.r.map(([x, y]) => [x, y]));
+    setCurvePointsG(selectedPreset.curves.g.map(([x, y]) => [x, y]));
+    setCurvePointsB(selectedPreset.curves.b.map(([x, y]) => [x, y]));
+    setCurvePointsMaster(selectedPreset.curves.r.map(([x, y], index) => [
+      x,
+      (y + selectedPreset.curves.g[index][1] + selectedPreset.curves.b[index][1]) / 3,
+    ] as [number, number]));
     setOverlayOpacityByCategory({
       lightleaks: 0.6,
       bokeh: 0.6,
@@ -1131,7 +1164,7 @@ export function useFilmLabState() {
       textures: 'screen',
       paper: 'overlay',
     });
-  }, []);
+  }, [selectedPreset.curves]);
 
   const customPresetItems = useMemo(() => customPresets.filter((preset) => {
     if (showFavoritesOnly && !favorites.includes(preset.id)) return false;
@@ -1235,7 +1268,7 @@ export function useFilmLabState() {
     const name = customPresetName.trim() || `${selectedPreset.name} Custom`;
     const description = customPresetDescription.trim() || `Custom preset based on ${selectedPreset.name}`;
     const newPreset: FilmPreset = {
-      ...selectedPreset,
+      ...currentPreset,
       id: `custom-${Date.now()}`,
       name,
       brand: 'My Presets',
@@ -1273,13 +1306,25 @@ export function useFilmLabState() {
     }
   }, [selectedPreset.id]);
 
+const curveOverridesExist = useMemo(() => {
+    const comparePoints = (source: [number, number][], base: [number, number][]) =>
+      source.length === base.length && source.some((point, index) => point[0] !== base[index][0] || point[1] !== base[index][1]);
+
+    return (
+      comparePoints(curvePointsR, selectedPreset.curves.r) ||
+      comparePoints(curvePointsG, selectedPreset.curves.g) ||
+      comparePoints(curvePointsB, selectedPreset.curves.b)
+    );
+  }, [curvePointsR, curvePointsG, curvePointsB, selectedPreset.curves]);
+
   const hasOverrides = useMemo(() => (
     grainAmount !== null || grainSize !== null || grainRoughness !== null ||
     vignetteAmount !== null || halationAmount !== null || contrastAmount !== null ||
     saturationAmount !== null || brightnessAmount !== null || fadedBlacks !== null || exposure !== 0 ||
     purpleFringing !== null || lensDistortion !== null || colorShiftX !== null || colorShiftY !== null || whiteBalance !== null || crossProcessAmount !== null || pushPullAmount !== null ||
-    levelsInputBlack !== null || levelsInputWhite !== null || levelsGamma !== null || levelsOutputBlack !== null || levelsOutputWhite !== null
-), [grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
+    levelsInputBlack !== null || levelsInputWhite !== null || levelsGamma !== null || levelsOutputBlack !== null || levelsOutputWhite !== null ||
+    curveOverridesExist
+  ), [grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, curveOverridesExist]);
 
   const handleSplitMove = useCallback((clientX: number) => {
     if (!draggingSplit || !splitContainerRef.current) return;
@@ -1411,6 +1456,16 @@ export function useFilmLabState() {
     setLevelsGamma,
     setLevelsOutputBlack,
     setLevelsOutputWhite,
+    curveChannel,
+    setCurveChannel,
+    curvePointsR,
+    setCurvePointsR,
+    curvePointsG,
+    setCurvePointsG,
+    curvePointsB,
+    setCurvePointsB,
+    curvePointsMaster,
+    setCurvePointsMaster,
     setCustomPresetName,
     setCustomPresetDescription,
     setCropRect,
@@ -1427,6 +1482,7 @@ export function useFilmLabState() {
     setSelectedPreset,
     selectPreset,
     currentParams,
+    currentPreset,
     originalImageData,
     frameBackground,
     framePadding,
