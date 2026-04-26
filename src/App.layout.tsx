@@ -1295,7 +1295,7 @@ export default function AppLayout() {
             <div
               ref={splitContainerRef}
               className="relative w-full h-full flex items-center justify-center select-none"
-              style={{ backgroundColor: frameBackground, padding: framePadding, touchAction: 'none' }}
+              style={{ touchAction: 'none' }}
               onPointerMove={(e) => handleSplitMove(e.clientX)}
               onPointerUp={() => setDraggingSplit(false)}
               onPointerCancel={() => setDraggingSplit(false)}
@@ -1303,7 +1303,7 @@ export default function AppLayout() {
               onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
               onTouchEnd={() => setDraggingSplit(false)}
             >
-              <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle }}>
+              <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle, backgroundColor: frameBackground, padding: framePadding }}>
                 <canvas
                   ref={originalCanvasRef}
                   className="w-full h-full block"
@@ -1376,8 +1376,8 @@ export default function AppLayout() {
               className="relative flex items-center justify-center w-full h-full"
               style={{ touchAction: 'none', overscrollBehavior: 'none' }}
             >
-              <div className="relative flex items-center justify-center max-w-full" style={{ backgroundColor: frameBackground, padding: framePadding, width: '100%', touchAction: 'none', overscrollBehavior: 'none' }}>
-                <div ref={imageWrapperRef} className="relative inline-block w-auto max-w-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle, touchAction: 'none' }}>
+              <div className="relative flex items-center justify-center max-w-full" style={{ width: '100%', touchAction: 'none', overscrollBehavior: 'none' }}>
+                <div ref={imageWrapperRef} className="relative inline-block w-auto max-w-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle, backgroundColor: frameBackground, padding: framePadding, touchAction: 'none' }}>
                   <canvas
                     ref={canvasRef}
                     className="block shadow-2xl opacity-100"

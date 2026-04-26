@@ -750,6 +750,132 @@ export function useFilmLabState() {
     setFavorites((prev) => prev.includes(presetId) ? prev.filter((id) => id !== presetId) : [...prev, presetId]);
   }, []);
 
+  const loadImage = useCallback((src: string | null): Promise<HTMLImageElement | null> => {
+    if (!src) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }, []);
+
+  const buildExportCanvas = useCallback(async (sourceCanvas: HTMLCanvasElement, editState: BatchImageEditState) => {
+    const thicknessPx = editState.frameColor === 'none' ? 0 : Math.round((editState.frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
+    const baseCanvas = document.createElement('canvas');
+    baseCanvas.width = sourceCanvas.width + thicknessPx * 2;
+    baseCanvas.height = sourceCanvas.height + thicknessPx * 2;
+    const baseCtx = baseCanvas.getContext('2d');
+    if (!baseCtx) throw new Error('Failed to create canvas context');
+
+    const frameBackground = editState.frameColor === 'white' ? '#ffffff' : editState.frameColor === 'black' ? '#000000' : 'transparent';
+    const overlayImgs = await Promise.all(editState.selectedOverlays.map((url) => loadImage(url)));
+    const loadedOverlays = overlayImgs.filter(Boolean) as HTMLImageElement[];
+
+    const drawOverlays = (ctx: CanvasRenderingContext2D, targetX: number, targetY: number, targetWidth: number, targetHeight: number) => {
+      if (loadedOverlays.length === 0) return;
+      loadedOverlays.forEach((img, index) => {
+        const category = OVERLAY_CATEGORY_MAP.get(editState.selectedOverlays[index]);
+        if (!category) return;
+        ctx.save();
+        ctx.globalAlpha = editState.overlayOpacityByCategory[category];
+        ctx.globalCompositeOperation = CANVAS_BLEND[editState.overlayBlendByCategory[category]] || 'source-over';
+
+        if (editState.selectedFrame) {
+          const { width: overlayWidth, height: overlayHeight } = getCanvasImageSourceDimensions(img);
+          const overlayAR = overlayWidth / overlayHeight;
+          const targetAR = targetWidth / targetHeight;
+          let overlaySrcX = 0;
+          let overlaySrcY = 0;
+          let overlaySrcW = overlayWidth;
+          let overlaySrcH = overlayHeight;
+
+          if (overlayAR > targetAR) {
+            overlaySrcW = overlayHeight * targetAR;
+            overlaySrcX = (overlayWidth - overlaySrcW) / 2;
+          } else {
+            overlaySrcH = overlayWidth / targetAR;
+            overlaySrcY = (overlayHeight - overlaySrcH) / 2;
+          }
+
+          ctx.drawImage(img, overlaySrcX, overlaySrcY, overlaySrcW, overlaySrcH, targetX, targetY, targetWidth, targetHeight);
+        } else {
+          drawImageCover(ctx, img, targetWidth, targetHeight);
+        }
+
+        ctx.restore();
+      });
+    };
+
+    if (editState.selectedFrame) {
+      const frameImg = await loadImage(editState.selectedFrame);
+      const img = frameImg;
+      let drawWidth = baseCanvas.width;
+      let drawHeight = baseCanvas.height;
+      let frameX = 0;
+      let frameY = 0;
+
+      if (img) {
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        const imgAR = imgWidth / imgHeight;
+        const canvasAR = baseCanvas.width / baseCanvas.height;
+        if (imgAR > canvasAR) {
+          drawHeight = baseCanvas.width / imgAR;
+        } else {
+          drawWidth = baseCanvas.height * imgAR;
+        }
+        frameX = (baseCanvas.width - drawWidth) / 2;
+        frameY = (baseCanvas.height - drawHeight) / 2;
+      }
+
+      if (frameBackground !== 'transparent') {
+        baseCtx.fillStyle = frameBackground;
+        baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+      } else {
+        baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
+      }
+
+      const { width: srcWidth, height: srcHeight } = getCanvasImageSourceDimensions(sourceCanvas);
+      const srcAR = srcWidth / srcHeight;
+      const targetAR = drawWidth / drawHeight;
+      let sx = 0;
+      let sy = 0;
+      let sw = srcWidth;
+      let sh = srcHeight;
+      if (srcAR > targetAR) {
+        sw = srcHeight * targetAR;
+        sx = (srcWidth - sw) / 2;
+      } else {
+        sh = srcWidth / targetAR;
+        sy = (srcHeight - sh) / 2;
+      }
+      baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
+
+      drawOverlays(baseCtx, frameX, frameY, drawWidth, drawHeight);
+
+      if (img) {
+        baseCtx.drawImage(img, frameX, frameY, drawWidth, drawHeight);
+      }
+
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = drawWidth;
+      croppedCanvas.height = drawHeight;
+      croppedCanvas.getContext('2d')!.drawImage(baseCanvas, frameX, frameY, drawWidth, drawHeight, 0, 0, drawWidth, drawHeight);
+      return croppedCanvas;
+    }
+
+    if (frameBackground !== 'transparent') {
+      baseCtx.fillStyle = frameBackground;
+      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+    }
+
+    baseCtx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
+    drawOverlays(baseCtx, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
+    return baseCanvas;
+  }, [loadImage]);
+
   const handleDownloadBatch = useCallback(async () => {
     if (batchImages.length === 0) return;
     setProcessing(true);
@@ -771,16 +897,24 @@ export function useFilmLabState() {
         colorShiftXOverride: editState.colorShiftX ?? undefined,
         colorShiftYOverride: editState.colorShiftY ?? undefined,
         whiteBalanceOverride: editState.whiteBalance ?? undefined,
+        crossProcessOverride: editState.crossProcessAmount ?? undefined,
+        pushPullOverride: editState.pushPullAmount ?? undefined,
+        levelsInputBlackOverride: editState.levelsInputBlack ?? undefined,
+        levelsInputWhiteOverride: editState.levelsInputWhite ?? undefined,
+        levelsGammaOverride: editState.levelsGamma ?? undefined,
+        levelsOutputBlackOverride: editState.levelsOutputBlack ?? undefined,
+        levelsOutputWhiteOverride: editState.levelsOutputWhite ?? undefined,
       };
       const result = await processImageInWorker(entry.data, editState.selectedPreset, params, grainSeed);
       const canvas = document.createElement('canvas');
       canvas.width = result.width;
       canvas.height = result.height;
       canvas.getContext('2d')!.putImageData(result, 0, 0);
+      const exportCanvas = await buildExportCanvas(canvas, editState);
       const link = document.createElement('a');
       const name = entry.file?.name.replace(/\.[^/.]+$/, '') || entry.name || 'batch-image';
       link.download = `${name}-${editState.selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.92);
+      link.href = exportCanvas.toDataURL('image/jpeg', 0.92);
       link.click();
       await new Promise((resolve) => setTimeout(resolve, 180));
     }
