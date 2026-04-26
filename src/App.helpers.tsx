@@ -334,7 +334,7 @@ export const OVERLAYS: Record<OverlayCategory, { label: string; urls: string[]; 
     label: 'Textures',
     urls: Object.values(import.meta.glob('./overlays/texture*.webp', { query: '?url', import: 'default', eager: true }) as Record<string, string>).sort(),
     thumbs: Object.values(import.meta.glob('./overlays/thumbs/texture*.webp', { query: '?url', import: 'default', eager: true }) as Record<string, string>).sort(),
-    defaultBlend: 'multiply',
+    defaultBlend: 'screen',
   },
 };
 

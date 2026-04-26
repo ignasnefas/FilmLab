@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { FrameColor } from './App.types';
+import type { FrameColor, CropRatio } from './App.types';
 import FramingTool from './FramingTool';
 import logo from './favicon/logo.png';
 import SectionHeader from './components/SectionHeader';
@@ -55,7 +55,6 @@ export default function AppLayout() {
     image,
     imageData,
     selectedPreset,
-    customPresets,
     favorites,
     customPresetName,
     customPresetDescription,
@@ -73,39 +72,18 @@ export default function AppLayout() {
     showOriginal,
     splitView,
     splitPos,
-    draggingSplit,
     frameColor,
     frameThickness,
+    exposure,
     loadingDemo,
     sidebarOpen,
     isAboutOpen,
     zoom,
-    overlayCategory,
-    selectedOverlay,
+    overlayCategories,
+    selectedOverlays,
     overlayOpacity,
     overlayBlend,
     selectedFrame,
-    grainAmount,
-    grainSize,
-    grainRoughness,
-    vignetteAmount,
-    halationAmount,
-    contrastAmount,
-    saturationAmount,
-    brightnessAmount,
-    fadedBlacks,
-    exposure,
-    purpleFringing,
-    lensDistortion,
-    colorShiftX,
-    colorShiftY,
-    whiteBalance,
-    levelsInputBlack,
-    levelsInputWhite,
-    levelsGamma,
-    levelsOutputBlack,
-    levelsOutputWhite,
-    processedImageData,
     canvasRef,
     originalCanvasRef,
     fileInputRef,
@@ -131,7 +109,6 @@ export default function AppLayout() {
     setSidebarOpen,
     setShowOriginal,
     setSplitView,
-    setSplitPos,
     setDraggingSplit,
     setCropMode,
     setCropRatio,
@@ -139,8 +116,8 @@ export default function AppLayout() {
     setShowFavoritesOnly,
     setFrameColor,
     setFrameThickness,
-    setOverlayCategory,
-    setSelectedOverlay,
+    setOverlayCategories,
+    setSelectedOverlays,
     setOverlayOpacity,
     setOverlayBlend,
     setSelectedFrame,
@@ -162,28 +139,16 @@ export default function AppLayout() {
     setLevelsInputBlack,
     setLevelsInputWhite,
     setLevelsGamma,
-    setLevelsOutputBlack,
-    setLevelsOutputWhite,
     setCustomPresetName,
     setCustomPresetDescription,
     setCropRect,
-    setZoom,
     setIsAboutOpen,
-    setFramingToolOpen,
     setGrainSeed,
-    setImage,
-    setImageData,
     setActiveBatchIndex,
-    setProcessing,
-    setSelectedPreset,
     selectPreset,
-    currentParams,
     frameBackground,
     framePadding,
-    getCurrentBatchEditState,
     displayedPresets,
-    filteredPresets,
-    customPresetItems,
     activeOverlayBlend,
     currentPresetIndex,
     hasOverrides,
@@ -193,7 +158,7 @@ export default function AppLayout() {
     onCropPointerDown,
     onCropPointerMove,
     onCropPointerUp,
-    framingToolOpen,
+    setBatchImages,
   } = state;
 
   const presetCountLabel = useMemo(() => `${currentPresetIndex + 1}/${displayedPresets.length}`, [currentPresetIndex, displayedPresets.length]);
@@ -213,6 +178,23 @@ export default function AppLayout() {
       setShowFavoritesOnly(false);
     }
   };
+
+  const overlayCategoryOptions = ['lightleaks', 'bokeh', 'textures'] as const;
+  const overlayCategorySet = new Set(overlayCategories);
+  const toggleOverlayCategory = (category: typeof overlayCategoryOptions[number]) => {
+    setOverlayCategories((prev) => {
+      const next = prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category];
+      return next.length > 0 ? next : ['lightleaks'];
+    });
+  };
+
+  const overlayItems = useMemo(() => overlayCategories.flatMap((category) => (
+    OVERLAYS[category].thumbs.map((thumb, i) => ({
+      category,
+      thumb,
+      url: OVERLAYS[category].urls[i],
+    }))
+  )), [overlayCategories]);
 
   return (
     <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden">
@@ -591,40 +573,47 @@ export default function AppLayout() {
               </div>
               <div className="px-3 pb-2">
                 <div className="flex gap-1 mb-2">
-                  {(Object.keys(OVERLAYS) as Array<'lightleaks' | 'bokeh' | 'textures'>).map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setOverlayCategory(cat)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
-                        overlayCategory === cat
-                          ? 'bg-zinc-700 text-zinc-100'
-                          : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
-                      }`}
-                    >
-                      {OVERLAYS[cat].label}
-                    </button>
-                  ))}
+                  {overlayCategoryOptions.map((cat) => {
+                    const isActive = overlayCategorySet.has(cat);
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => toggleOverlayCategory(cat)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                          isActive
+                            ? 'bg-zinc-700 text-zinc-100'
+                            : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                        }`}
+                      >
+                        {OVERLAYS[cat].label}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="grid grid-cols-5 gap-1">
                   <button
-                    onClick={() => setSelectedOverlay(null)}
+                    onClick={() => setSelectedOverlays([])}
                     className={`aspect-square rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
-                      !selectedOverlay
+                      selectedOverlays.length === 0
                         ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
                         : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-300 border-zinc-700/50 hover:border-zinc-500'
                     }`}
                   >
                     None
                   </button>
-                  {OVERLAYS[overlayCategory].thumbs.map((thumb, i) => {
-                    const url = OVERLAYS[overlayCategory].urls[i];
-                    const isSelected = selectedOverlay === url;
+                  {overlayItems.map(({ thumb, url, category }) => {
+                    const isSelected = selectedOverlays.includes(url);
                     return (
                       <button
                         key={url}
                         onClick={() => {
-                          setSelectedOverlay(url);
-                          if (!isSelected) setOverlayBlend(OVERLAYS[overlayCategory].defaultBlend);
+                          setSelectedOverlays((prev) => {
+                            if (prev.includes(url)) {
+                              return prev.filter((item) => item !== url);
+                            }
+                            return [...prev, url];
+                          });
+                          if (!isSelected) setOverlayBlend(OVERLAYS[category].defaultBlend);
                         }}
                         className={`aspect-square rounded overflow-hidden transition-all border ${
                           isSelected
@@ -637,7 +626,7 @@ export default function AppLayout() {
                     );
                   })}
                 </div>
-                {selectedOverlay && (
+                {selectedOverlays.length > 0 && (
                   <div className="mt-2 space-y-1.5">
                     <SliderControl
                       label="Opacity"
@@ -940,14 +929,17 @@ export default function AppLayout() {
                 </div>
                 <div className="absolute top-2 left-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">Original</div>
                 <div className="absolute top-2 right-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">{selectedPreset.name}</div>
-                {selectedOverlay && (
+                {selectedOverlays.length > 0 && (
                   <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)`, mixBlendMode: activeOverlayBlend }}>
-                    <img
-                      src={selectedOverlay}
-                      className="absolute inset-0 w-full h-full"
-                      style={{ objectFit: 'cover', opacity: overlayOpacity, mixBlendMode: activeOverlayBlend }}
-                      alt=""
-                    />
+                    {selectedOverlays.map((overlayUrl) => (
+                      <img
+                        key={overlayUrl}
+                        src={overlayUrl}
+                        className="absolute inset-0 w-full h-full"
+                        style={{ objectFit: 'cover', opacity: overlayOpacity, mixBlendMode: activeOverlayBlend }}
+                        alt=""
+                      />
+                    ))}
                   </div>
                 )}
                 {selectedFrame && (
@@ -1020,14 +1012,15 @@ export default function AppLayout() {
                       </div>
                     </div>
                   )}
-                  {!showOriginal && selectedOverlay && (
+                  {!showOriginal && selectedOverlays.length > 0 && selectedOverlays.map((overlayUrl) => (
                     <img
-                      src={selectedOverlay}
+                      key={overlayUrl}
+                      src={overlayUrl}
                       className="absolute inset-0 w-full h-full pointer-events-none"
                       style={{ objectFit: 'cover', opacity: overlayOpacity, mixBlendMode: activeOverlayBlend }}
                       alt=""
                     />
-                  )}
+                  ))}
                   {!showOriginal && selectedFrame && (
                     <img
                       src={selectedFrame}

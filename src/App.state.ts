@@ -6,9 +6,6 @@ import {
   FAVORITES_STORAGE_KEY,
   loadFromStorage,
   saveToStorage,
-  OVERLAYS,
-  FRAME_URLS,
-  BLEND_MODES,
   CANVAS_BLEND,
   drawImageCover,
   rotateImageData,
@@ -61,8 +58,8 @@ export function useFilmLabState() {
   const [framingToolOpen, setFramingToolOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
 
-  const [overlayCategory, setOverlayCategory] = useState<'lightleaks' | 'bokeh' | 'textures'>('lightleaks');
-  const [selectedOverlay, setSelectedOverlay] = useState<string | null>(null);
+  const [overlayCategories, setOverlayCategories] = useState<Array<'lightleaks' | 'bokeh' | 'textures'>>(['lightleaks']);
+  const [selectedOverlays, setSelectedOverlays] = useState<string[]>([]);
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [overlayBlend, setOverlayBlend] = useState<'screen' | 'multiply' | 'overlay' | 'soft-light' | 'normal'>('screen');
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
@@ -96,7 +93,7 @@ export function useFilmLabState() {
   const mainAreaRef = useRef<HTMLDivElement>(null);
   const processTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const overlayImgRef = useRef<HTMLImageElement | null>(null);
+  const overlayImgRef = useRef<HTMLImageElement[]>([]);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
   const originalImageDataRef = useRef<ImageData | null>(null);
 
@@ -223,11 +220,13 @@ export function useFilmLabState() {
   }, [splitView, imageData, processedImageData]);
 
   useEffect(() => {
-    if (!selectedOverlay) { overlayImgRef.current = null; return; }
-    const img = new Image();
-    img.onload = () => { overlayImgRef.current = img; };
-    img.src = selectedOverlay;
-  }, [selectedOverlay]);
+    overlayImgRef.current = [];
+    selectedOverlays.forEach((url) => {
+      const img = new Image();
+      img.onload = () => { overlayImgRef.current.push(img); };
+      img.src = url;
+    });
+  }, [selectedOverlays]);
 
   useEffect(() => {
     if (!selectedFrame) { frameImgRef.current = null; return; }
@@ -240,7 +239,7 @@ export function useFilmLabState() {
     selectedPreset,
     frameColor,
     frameThickness,
-    selectedOverlay,
+    selectedOverlays,
     overlayOpacity,
     overlayBlend,
     selectedFrame,
@@ -264,7 +263,7 @@ export function useFilmLabState() {
     levelsGamma,
     levelsOutputBlack,
     levelsOutputWhite,
-  }), [selectedPreset, frameColor, frameThickness, selectedOverlay, overlayOpacity, overlayBlend, selectedFrame, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
+  }), [selectedPreset, frameColor, frameThickness, selectedOverlays, overlayOpacity, overlayBlend, selectedFrame, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
 
   const addBatchEntry = useCallback((entry: BatchImage) => {
     setBatchImages((prev) => {
@@ -280,7 +279,7 @@ export function useFilmLabState() {
     setSelectedPreset(entry.editState.selectedPreset);
     setFrameColor(entry.editState.frameColor);
     setFrameThickness(entry.editState.frameThickness);
-    setSelectedOverlay(entry.editState.selectedOverlay);
+    setSelectedOverlays(entry.editState.selectedOverlays);
     setOverlayOpacity(entry.editState.overlayOpacity);
     setOverlayBlend(entry.editState.overlayBlend);
     setSelectedFrame(entry.editState.selectedFrame);
@@ -406,7 +405,7 @@ export function useFilmLabState() {
     setSelectedPreset(entry.editState.selectedPreset);
     setFrameColor(entry.editState.frameColor);
     setFrameThickness(entry.editState.frameThickness);
-    setSelectedOverlay(entry.editState.selectedOverlay);
+    setSelectedOverlays(entry.editState.selectedOverlays);
     setOverlayOpacity(entry.editState.overlayOpacity);
     setOverlayBlend(entry.editState.overlayBlend);
     setSelectedFrame(entry.editState.selectedFrame);
@@ -489,13 +488,13 @@ export function useFilmLabState() {
       levelsOutputWhite,
       frameColor,
       frameThickness,
-      selectedOverlay,
+      selectedOverlays,
       overlayOpacity,
       overlayBlend,
       selectedFrame,
       activeBatchIndex,
     };
-  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, frameColor, frameThickness, selectedOverlay, overlayOpacity, overlayBlend, selectedFrame, activeBatchIndex]);
+  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, frameColor, frameThickness, selectedOverlays, overlayOpacity, overlayBlend, selectedFrame, activeBatchIndex]);
 
   const restoreSnapshot = useCallback((snapshot: HistoryEntry) => {
     setImageData(snapshot.imageData);
@@ -524,7 +523,7 @@ export function useFilmLabState() {
     setLevelsOutputWhite(snapshot.levelsOutputWhite);
     setFrameColor(snapshot.frameColor);
     setFrameThickness(snapshot.frameThickness);
-    setSelectedOverlay(snapshot.selectedOverlay);
+    setSelectedOverlays(snapshot.selectedOverlays);
     setOverlayOpacity(snapshot.overlayOpacity);
     setOverlayBlend(snapshot.overlayBlend);
     setSelectedFrame(snapshot.selectedFrame);
@@ -827,12 +826,15 @@ export function useFilmLabState() {
       ctx.fillRect(0, 0, dstCanvas.width, dstCanvas.height);
       ctx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
     }
-    if (selectedOverlay && overlayImgRef.current) {
-      ctx.save();
-      ctx.globalAlpha = overlayOpacity;
-      ctx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
-      drawImageCover(ctx, overlayImgRef.current, dstCanvas.width, dstCanvas.height);
-      ctx.restore();
+    if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
+      overlayImgRef.current.forEach((img) => {
+        if (!img) return;
+        ctx.save();
+        ctx.globalAlpha = overlayOpacity;
+        ctx.globalCompositeOperation = CANVAS_BLEND[overlayBlend] || 'source-over';
+        drawImageCover(ctx, img, dstCanvas.width, dstCanvas.height);
+        ctx.restore();
+      });
     }
     if (selectedFrame && frameImgRef.current) {
       ctx.save();
@@ -843,11 +845,7 @@ export function useFilmLabState() {
     link.download = `${selectedPreset.brand}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
     link.href = dstCanvas.toDataURL('image/jpeg', 0.95);
     link.click();
-  }, [selectedPreset, frameColor, frameThickness, selectedOverlay, overlayOpacity, overlayBlend, selectedFrame]);
-
-  const handleRerollGrain = useCallback(() => {
-    setGrainSeed(Math.floor(Math.random() * 100000));
-  }, []);
+  }, [selectedPreset, frameColor, frameThickness, selectedOverlays, overlayOpacity, overlayBlend, selectedFrame]);
 
   const resetOverrides = useCallback(() => {
     setGrainAmount(null);
@@ -890,7 +888,7 @@ export function useFilmLabState() {
     setSelectedPreset(preset);
   }, [imageData, pushHistory]);
 
-  const activeOverlayBlend = selectedOverlay ? overlayBlend : 'normal';
+  const activeOverlayBlend = selectedOverlays.length > 0 ? overlayBlend : 'normal';
 
   const currentPresetIndex = displayedPresets.findIndex((p) => p.id === selectedPreset.id);
 
@@ -1024,8 +1022,6 @@ export function useFilmLabState() {
     setSplitPos(Math.max(2, Math.min(98, x)));
   }, [draggingSplit]);
 
-  const handleSaveCustom = handleSaveCustomPreset;
-
   return {
     image,
     imageData,
@@ -1057,8 +1053,8 @@ export function useFilmLabState() {
     sidebarOpen,
     isAboutOpen,
     zoom,
-    overlayCategory,
-    selectedOverlay,
+    overlayCategories,
+    selectedOverlays,
     overlayOpacity,
     overlayBlend,
     selectedFrame,
@@ -1119,8 +1115,8 @@ export function useFilmLabState() {
     setShowFavoritesOnly,
     setFrameColor,
     setFrameThickness,
-    setOverlayCategory,
-    setSelectedOverlay,
+    setOverlayCategories,
+    setSelectedOverlays,
     setOverlayOpacity,
     setOverlayBlend,
     setSelectedFrame,
@@ -1171,6 +1167,7 @@ export function useFilmLabState() {
     eff,
     levelsHistogram,
     handleSplitMove,
+    setBatchImages,
     framingToolOpen,
   };
 }

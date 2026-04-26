@@ -9,7 +9,7 @@ export interface BatchImageEditState {
   selectedPreset: FilmPreset;
   frameColor: FrameColor;
   frameThickness: number;
-  selectedOverlay: string | null;
+  selectedOverlays: string[];
   overlayOpacity: number;
   overlayBlend: BlendMode;
   selectedFrame: string | null;
@@ -79,7 +79,7 @@ export interface HistoryEntry {
   levelsOutputWhite: number | null;
   frameColor: FrameColor;
   frameThickness: number;
-  selectedOverlay: string | null;
+  selectedOverlays: string[];
   overlayOpacity: number;
   overlayBlend: BlendMode;
   selectedFrame: string | null;
