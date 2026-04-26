@@ -1188,13 +1188,6 @@ export default function AppLayout() {
           />
         )}
 
-        {sidebarOpen && (
-          <div
-            className="md:hidden fixed inset-0 bg-transparent z-30"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
         <main
           ref={mainAreaRef}
           className="flex-1 flex items-center justify-center bg-zinc-950 relative overflow-visible"
