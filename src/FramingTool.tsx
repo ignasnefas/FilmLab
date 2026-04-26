@@ -329,16 +329,17 @@ export default function FramingTool({ isOpen, onClose }: FramingToolProps) {
                           />
                           <div className="flex-1 min-w-0">
                             <p className="truncate text-sm font-medium text-white">{img.file.name}</p>
-                            <p className="text-xs text-zinc-500">{img.width} × {img.height}</p>
                           </div>
                           <span
-                            className="block rounded-full border border-zinc-700 px-2 py-1 text-[10px] text-zinc-400 hover:border-red-400 hover:text-red-300 cursor-pointer"
+                            role="button"
+                            aria-label="Remove image"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:border-red-400 hover:text-red-300 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
                               removeImage(index);
                             }}
                           >
-                            Remove
+                            ×
                           </span>
                         </button>
                       ))}
