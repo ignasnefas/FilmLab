@@ -1132,22 +1132,8 @@ export default function AppLayout() {
               </div>
               <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.cropRotate ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3 space-y-2">
-                <div className="flex flex-wrap gap-2">
-                  {['original', '1:1', '4:3', '16:9'].map((ratio) => (
-                    <button
-                      key={ratio}
-                      onClick={() => {
-                        setCropRatio(ratio as CropRatio);
-                        setCropMode(true);
-                      }}
-                      className={`px-2 py-1 rounded-md text-[10px] transition-all ${cropRatio === ratio ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
-                    >
-                      {ratio.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
                 <div className="text-[10px] text-zinc-500 leading-snug">
-                  Pick a ratio and enter crop mode. Drag the overlay on the canvas to reposition the crop before applying.
+                  Enter crop mode, then drag the overlay on the canvas to reposition the crop before applying.
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -1422,7 +1408,7 @@ export default function AppLayout() {
                     }}
                   />
                   {cropMode && cropRect && (
-                    <div className="absolute inset-0 pointer-events-auto">
+                    <div className="absolute inset-0 pointer-events-auto" data-ignore-pan>
                       <div className="absolute left-0 top-0 right-0 pointer-events-none" style={{ height: `${cropRect.y * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
                       <div className="absolute left-0 right-0 pointer-events-none" style={{ top: `${(cropRect.y + cropRect.h) * 100}%`, height: `${(1 - cropRect.y - cropRect.h) * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
                       <div className="absolute left-0 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${cropRect.x * 100}%`, height: `${cropRect.h * 100}%`, backgroundColor: 'rgba(0,0,0,0.45)' }} />
@@ -1439,9 +1425,9 @@ export default function AppLayout() {
                         {['nw', 'ne', 'sw', 'se'].map((handle) => {
                           const positions: Record<string, string> = {
                             nw: 'top-0 left-0',
-                            ne: 'top-0 right-0',
-                            sw: 'bottom-0 left-0',
-                            se: 'bottom-0 right-0',
+                            ne: 'top-0 left-full',
+                            sw: 'top-full left-0',
+                            se: 'top-full left-full',
                           };
                           const cursors: Record<string, string> = {
                             nw: 'cursor-nwse-resize',
@@ -1452,6 +1438,7 @@ export default function AppLayout() {
                           return (
                             <div
                               key={handle}
+                              data-ignore-pan
                               className={`${positions[handle]} absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 border border-white ${cursors[handle]}`}
                               onPointerDown={onCropPointerDown(handle as any)}
                             />

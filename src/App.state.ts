@@ -837,6 +837,7 @@ export function useFilmLabState() {
   const onCropPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggingCrop || !cropRect || !cropDragRef.current || !canvasBounds) return;
     e.preventDefault();
+    e.stopPropagation();
     const dx = (e.clientX - cropDragRef.current.startX) / canvasBounds.width;
     const dy = (e.clientY - cropDragRef.current.startY) / canvasBounds.height;
     const start = cropDragRef.current.startRect;
@@ -931,7 +932,10 @@ export function useFilmLabState() {
     setCropRect(clampCropRect(next, minSize, cropRatio !== 'original' ? aspectRatio : undefined));
   }, [draggingCrop, cropRatio, cropRect, canvasBounds]);
 
-  const onCropPointerUp = useCallback(() => {
+  const onCropPointerUp = useCallback((e?: React.PointerEvent<HTMLDivElement>) => {
+    if (e) {
+      e.preventDefault();
+    }
     setDraggingCrop(false);
     cropDragRef.current = null;
   }, []);
@@ -964,6 +968,8 @@ export function useFilmLabState() {
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'mouse') return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const targetElement = e.target as HTMLElement;
+      if (targetElement.closest('[data-ignore-pan]')) return;
       e.preventDefault();
       const pointerTarget = e.currentTarget as HTMLElement;
       if (typeof pointerTarget?.setPointerCapture === 'function') {
