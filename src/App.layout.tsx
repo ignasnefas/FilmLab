@@ -651,7 +651,7 @@ export default function AppLayout() {
                         }}
                         className={`aspect-square rounded overflow-hidden transition-all border ${
                           isSelected
-                            ? 'border-amber-500 ring-1 ring-amber-500/40'
+                            ? 'border-2 border-amber-400 ring-2 ring-amber-400/70 shadow-[0_0_0_3px_rgba(251,191,36,0.24)]'
                             : 'border-zinc-700/50 hover:border-zinc-500'
                         }`}
                       >
