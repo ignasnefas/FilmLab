@@ -447,52 +447,6 @@ export default function AppLayout() {
           </div>
 
           <div className="sticky top-0 z-10 px-3 pt-3 pb-2 border-b border-zinc-800/40 bg-zinc-900/40 backdrop-blur-sm">
-            <div className="pb-4 border-b border-zinc-800/30">
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('levels')}
-                  className="flex items-center gap-3"
-                >
-                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.levels ? 'rotate-90' : ''}`} />
-                  <SectionHeader title="Levels" icon={<LevelsIcon />} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Reset Levels"
-                  onClick={() => {
-                    setLevelsInputBlack(null);
-                    setLevelsInputWhite(null);
-                    setLevelsGamma(null);
-                    setLevelsOutputBlack(null);
-                    setLevelsOutputWhite(null);
-                  }}
-                  disabled={
-                    levelsInputBlack === null &&
-                    levelsInputWhite === null &&
-                    levelsGamma === null &&
-                    levelsOutputBlack === null &&
-                    levelsOutputWhite === null
-                  }
-                  className="p-1 rounded-full text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <ResetIcon />
-                </button>
-              </div>
-              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.levels ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
-                <div className="mt-2">
-                  <LevelsHistogram
-                    histogram={levelsHistogram}
-                    inputBlack={eff.levelsInputBlack}
-                    inputWhite={eff.levelsInputWhite}
-                    gamma={eff.levelsGamma}
-                    onInputBlackChange={setLevelsInputBlack}
-                    onInputWhiteChange={setLevelsInputWhite}
-                    onGammaChange={setLevelsGamma}
-                  />
-                </div>
-              </div>
-            </div>
             <div className="mt-3 px-1 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                 <span>Batch ({batchImages.length})</span>
@@ -540,6 +494,52 @@ export default function AppLayout() {
                   </div>
                 </>
               )}
+            </div>
+            <div className="pb-4 border-b border-zinc-800/30">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('levels')}
+                  className="flex items-center gap-3"
+                >
+                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.levels ? 'rotate-90' : ''}`} />
+                  <SectionHeader title="Levels" icon={<LevelsIcon />} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Reset Levels"
+                  onClick={() => {
+                    setLevelsInputBlack(null);
+                    setLevelsInputWhite(null);
+                    setLevelsGamma(null);
+                    setLevelsOutputBlack(null);
+                    setLevelsOutputWhite(null);
+                  }}
+                  disabled={
+                    levelsInputBlack === null &&
+                    levelsInputWhite === null &&
+                    levelsGamma === null &&
+                    levelsOutputBlack === null &&
+                    levelsOutputWhite === null
+                  }
+                  className="p-1 rounded-full text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ResetIcon />
+                </button>
+              </div>
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.levels ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
+                <div className="mt-2">
+                  <LevelsHistogram
+                    histogram={levelsHistogram}
+                    inputBlack={eff.levelsInputBlack}
+                    inputWhite={eff.levelsInputWhite}
+                    gamma={eff.levelsGamma}
+                    onInputBlackChange={setLevelsInputBlack}
+                    onInputWhiteChange={setLevelsInputWhite}
+                    onGammaChange={setLevelsGamma}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
