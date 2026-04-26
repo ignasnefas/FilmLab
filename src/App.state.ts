@@ -103,6 +103,7 @@ export function useFilmLabState() {
   const [levelsOutputBlack, setLevelsOutputBlack] = useState<number | null>(null);
   const [levelsOutputWhite, setLevelsOutputWhite] = useState<number | null>(null);
   const [processedImageData, setProcessedImageData] = useState<ImageData | null>(null);
+  const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -111,6 +112,7 @@ export function useFilmLabState() {
   const mainAreaRef = useRef<HTMLDivElement>(null);
   const processTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const latestPreviewRequestRef = useRef(0);
   const workerRef = useRef<Worker | null>(null);
   const workerRequestIdRef = useRef(0);
   const workerResolversRef = useRef(new Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void; }>());
@@ -234,6 +236,40 @@ export function useFilmLabState() {
     return new ImageData(new Uint8ClampedArray(result.data), result.width, result.height);
   }, [sendWorkerRequest]);
 
+  const getPreviewImageData = useCallback((source: ImageData) => {
+    const maxDim = 1200;
+    if (source.width <= maxDim && source.height <= maxDim) return source;
+
+    const scale = maxDim / Math.max(source.width, source.height);
+    const width = Math.max(1, Math.round(source.width * scale));
+    const height = Math.max(1, Math.round(source.height * scale));
+
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = source.width;
+    srcCanvas.height = source.height;
+    const srcCtx = srcCanvas.getContext('2d');
+    if (!srcCtx) return source;
+    srcCtx.putImageData(source, 0, 0);
+
+    const dstCanvas = document.createElement('canvas');
+    dstCanvas.width = width;
+    dstCanvas.height = height;
+    const dstCtx = dstCanvas.getContext('2d');
+    if (!dstCtx) return source;
+    dstCtx.imageSmoothingQuality = 'high';
+    dstCtx.drawImage(srcCanvas, 0, 0, width, height);
+
+    return dstCtx.getImageData(0, 0, width, height);
+  }, []);
+
+  useEffect(() => {
+    if (!imageData) {
+      setPreviewImageData(null);
+      return;
+    }
+    setPreviewImageData(getPreviewImageData(imageData));
+  }, [imageData, getPreviewImageData]);
+
   useEffect(() => {
     if (!imageData || !canvasRef.current || !workerRef.current) return;
 
@@ -242,11 +278,15 @@ export function useFilmLabState() {
     const debounceDelay = 80;
     processTimeoutRef.current = setTimeout(() => {
       setProcessing(true);
+      const requestId = ++latestPreviewRequestRef.current;
       requestAnimationFrame(async () => {
         try {
-          const result = await processImageInWorker(imageData, selectedPreset, currentParams, grainSeed);
-          setProcessedImageData(result);
-          processedCanvasRef.current = canvasRef.current;
+          const source = previewImageData ?? imageData;
+          const result = await processImageInWorker(source, selectedPreset, currentParams, grainSeed);
+          if (requestId === latestPreviewRequestRef.current) {
+            setProcessedImageData(result);
+            processedCanvasRef.current = canvasRef.current;
+          }
         } catch (error) {
           console.error('Image processing worker failed', error);
         } finally {
@@ -258,11 +298,13 @@ export function useFilmLabState() {
     return () => {
       if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
     };
-  }, [imageData, selectedPreset, currentParams, grainSeed, processImageInWorker]);
+  }, [imageData, previewImageData, selectedPreset, currentParams, grainSeed, processImageInWorker]);
 
   const renderPreviewCanvas = useCallback((canvas: HTMLCanvasElement, source: ImageData, angle: number) => {
-    canvas.width = source.width;
-    canvas.height = source.height;
+    if (canvas.width !== source.width || canvas.height !== source.height) {
+      canvas.width = source.width;
+      canvas.height = source.height;
+    }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     drawImageDataRotated(ctx, source, angle);
@@ -270,15 +312,16 @@ export function useFilmLabState() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const source = processedImageData ?? imageData;
+    const source = processedImageData ?? previewImageData ?? imageData;
     if (!canvas || !source) return;
     renderPreviewCanvas(canvas, source, rotation);
-  }, [renderPreviewCanvas, processedImageData, imageData, rotation, splitView, showOriginal]);
+  }, [renderPreviewCanvas, processedImageData, previewImageData, imageData, rotation, splitView, showOriginal]);
 
   useEffect(() => {
     if (!splitView || !imageData || !originalCanvasRef.current) return;
-    renderPreviewCanvas(originalCanvasRef.current, imageData, rotation);
-  }, [renderPreviewCanvas, splitView, imageData, rotation]);
+    const source = previewImageData ?? imageData;
+    renderPreviewCanvas(originalCanvasRef.current, source, rotation);
+  }, [renderPreviewCanvas, splitView, imageData, previewImageData, rotation]);
 
   useEffect(() => {
     overlayImgRef.current = [];
@@ -887,19 +930,27 @@ export function useFilmLabState() {
     setZoom(1);
   }, [image]);
 
-  const handleDownload = useCallback(() => {
-    if (!canvasRef.current) return;
-    const sourceCanvas = canvasRef.current;
-    const thicknessPx = frameColor === 'none' ? 0 : Math.round((frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
-    const baseCanvas = document.createElement('canvas');
-    baseCanvas.width = sourceCanvas.width + thicknessPx * 2;
-    baseCanvas.height = sourceCanvas.height + thicknessPx * 2;
-    const baseCtx = baseCanvas.getContext('2d');
-    if (!baseCtx) return;
+  const handleDownload = useCallback(async () => {
+    if (!imageData) return;
+    setProcessing(true);
 
-    let exportCanvas: HTMLCanvasElement = baseCanvas;
+    try {
+      const processed = await processImageInWorker(imageData, selectedPreset, currentParams, grainSeed);
+      const sourceCanvas = document.createElement('canvas');
+      sourceCanvas.width = processed.width;
+      sourceCanvas.height = processed.height;
+      sourceCanvas.getContext('2d')!.putImageData(processed, 0, 0);
 
-    if (selectedFrame && frameImgRef.current) {
+      const thicknessPx = frameColor === 'none' ? 0 : Math.round((frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
+      const baseCanvas = document.createElement('canvas');
+      baseCanvas.width = sourceCanvas.width + thicknessPx * 2;
+      baseCanvas.height = sourceCanvas.height + thicknessPx * 2;
+      const baseCtx = baseCanvas.getContext('2d');
+      if (!baseCtx) return;
+
+      let exportCanvas: HTMLCanvasElement = baseCanvas;
+
+      if (selectedFrame && frameImgRef.current) {
       const img = frameImgRef.current;
       const imgWidth = img.naturalWidth;
       const imgHeight = img.naturalHeight;
@@ -1039,7 +1090,12 @@ export function useFilmLabState() {
     link.download = `${selectedPreset.brand}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
     link.href = dstCanvas.toDataURL('image/jpeg', 0.95);
     link.click();
-  }, [selectedPreset, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, rotation]);
+  } catch (error) {
+    console.error('Export failed', error);
+  } finally {
+    setProcessing(false);
+  }
+  }, [selectedPreset, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, rotation, currentParams, frameBackground, grainSeed, processImageInWorker, imageData]);
 
   const resetOverrides = useCallback(() => {
     setGrainAmount(null);

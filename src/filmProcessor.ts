@@ -319,26 +319,26 @@ export function processImage(
 
     if (crossProcess !== 0) {
       const shift = crossProcess * 0.8;
-      r = Math.max(0, Math.min(255, r + shift * (highWeight * 18 - shadowWeight * 6)));
-      g = Math.max(0, Math.min(255, g - shift * (highWeight * 8 - shadowWeight * 24)));
-      b = Math.max(0, Math.min(255, b + shift * (highWeight * 12 - shadowWeight * 4)));
+      r = clampByte(r + shift * (highWeight * 18 - shadowWeight * 6));
+      g = clampByte(g - shift * (highWeight * 8 - shadowWeight * 24));
+      b = clampByte(b + shift * (highWeight * 12 - shadowWeight * 4));
     }
 
-    r = Math.max(0, Math.min(255,
+    r = clampByte(
       r + shadowsTint[0] * shadowWeight +
       midtonesTint[0] * midWeight +
       highlightsTint[0] * highWeight
-    ));
-    g = Math.max(0, Math.min(255,
+    );
+    g = clampByte(
       g + shadowsTint[1] * shadowWeight +
       midtonesTint[1] * midWeight +
       highlightsTint[1] * highWeight
-    ));
-    b = Math.max(0, Math.min(255,
+    );
+    b = clampByte(
       b + shadowsTint[2] * shadowWeight +
       midtonesTint[2] * midWeight +
       highlightsTint[2] * highWeight
-    ));
+    );
 
     // 6. Saturation adjustment (only if needed)
     if (satInv) {
@@ -346,9 +346,9 @@ export function processImage(
       const diff_r = r - gray;
       const diff_g = g - gray;
       const diff_b = b - gray;
-      r = Math.max(0, Math.min(255, gray + diff_r * saturation));
-      g = Math.max(0, Math.min(255, gray + diff_g * saturation));
-      b = Math.max(0, Math.min(255, gray + diff_b * saturation));
+      r = clampByte(gray + diff_r * saturation);
+      g = clampByte(gray + diff_g * saturation);
+      b = clampByte(gray + diff_b * saturation);
     }
 
     data[i] = r;
