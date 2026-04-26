@@ -46,6 +46,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CurvesIcon,
+  ZoomOutIcon,
+  ZoomInIcon,
   OVERLAYS,
   FRAME_URLS,
   BLEND_MODES,
@@ -168,6 +170,7 @@ export default function AppLayout() {
     loadingDemo,
     isAboutOpen,
     zoom,
+    setZoom,
     overlayCategories,
     selectedOverlays,
     overlayOpacityByCategory,
@@ -295,6 +298,9 @@ export default function AppLayout() {
   };
 
   const presetCountLabel = useMemo(() => `${currentPresetIndex + 1}/${displayedPresets.length}`, [currentPresetIndex, displayedPresets.length]);
+
+  const clampZoom = (value: number) => Math.min(3, Math.max(0.5, value));
+  const changeZoom = (delta: number) => setZoom((prev) => clampZoom(prev + delta));
 
   const presetCategories = ['all', 'color-negative', 'bw-negative', 'slide', 'cinema', 'custom', 'favorites'] as const;
   const activeCategory = showFavoritesOnly ? 'favorites' : filterType;
@@ -454,6 +460,23 @@ export default function AppLayout() {
                 >
                   <EyeIcon />
                   <span className="hidden md:inline">Hold: Original</span>
+                </button>
+                <div className="w-px h-5 bg-zinc-800 mx-1" />
+                <button
+                  onClick={() => changeZoom(-0.1)}
+                  disabled={zoom <= 0.5}
+                  title="Zoom out"
+                  className="p-2 rounded-md bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ZoomOutIcon />
+                </button>
+                <button
+                  onClick={() => changeZoom(0.1)}
+                  disabled={zoom >= 3}
+                  title="Zoom in"
+                  className="p-2 rounded-md bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ZoomInIcon />
                 </button>
                 <div className="w-px h-5 bg-zinc-800 mx-1" />
                 <button

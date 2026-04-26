@@ -64,6 +64,22 @@ export const PlusIcon = () => (
   </svg>
 );
 
+export const ZoomOutIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <circle cx="11" cy="11" r="7" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 11h6" />
+    <path strokeLinecap="round" d="M16.5 16.5l4 4" />
+  </svg>
+);
+
+export const ZoomInIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <circle cx="11" cy="11" r="7" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 8v6M8 11h6" />
+    <path strokeLinecap="round" d="M16.5 16.5l4 4" />
+  </svg>
+);
+
 export const UploadIcon = () => (
   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
