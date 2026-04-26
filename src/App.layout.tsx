@@ -211,6 +211,7 @@ export default function AppLayout() {
     resetOverrides,
     handleDownload,
     applyCrop,
+    resetCrop,
     setRotation,
     resetTransform,
     handleSaveCustomPreset,
@@ -1145,21 +1146,21 @@ export default function AppLayout() {
               </div>
               <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.cropRotate ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3 space-y-2">
-                <div className="text-[10px] text-zinc-500 leading-snug">
-                  Enter crop mode, then drag the overlay on the canvas to reposition the crop before applying.
-                </div>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setCropMode(true)}
+                    onClick={() => {
+                      if (cropMode && cropRect) {
+                        applyCrop();
+                      } else {
+                        setCropMode(true);
+                      }
+                    }}
                     className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${cropMode ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
                   >
-                    {cropMode ? 'Crop Mode Active' : 'Start Crop'}
+                    {cropMode && cropRect ? 'Apply Crop' : cropMode ? 'Crop Mode Active' : 'Start Crop'}
                   </button>
                   <button
-                    onClick={() => {
-                      setCropMode(false);
-                      setCropRect(null);
-                    }}
+                    onClick={resetCrop}
                     className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
                   >
                     Cancel Crop
@@ -1178,21 +1179,6 @@ export default function AppLayout() {
                       onChange={(v) => setRotation(Math.min(45, Math.max(-45, v ?? 0)))}
                     />
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={applyCrop}
-                    disabled={!cropMode || !cropRect}
-                    className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-colors ${cropMode && cropRect ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
-                  >
-                    Apply Crop
-                  </button>
-                  <button
-                    onClick={resetTransform}
-                    className="flex-1 px-2 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
-                  >
-                    Reset Transform
-                  </button>
                 </div>
               </div>
               </div>
@@ -1344,7 +1330,7 @@ export default function AppLayout() {
                 </div>
                 <div
                   className="absolute top-0 bottom-0 cursor-col-resize z-10"
-                  style={{ left: `${splitPos}%`, transform: 'translateX(-50%)', width: '32px' }}
+                  style={{ left: `${splitPos}%`, transform: 'translateX(-50%)', width: '32px', touchAction: 'none' }}
                   data-ignore-pan
                   onPointerDown={(e) => {
                     e.preventDefault();
@@ -1354,11 +1340,6 @@ export default function AppLayout() {
                         e.currentTarget.setPointerCapture(e.pointerId);
                       } catch {}
                     }
-                    setDraggingSplit(true);
-                  }}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
                     setDraggingSplit(true);
                   }}
                 >
@@ -1450,6 +1431,12 @@ export default function AppLayout() {
                         onPointerLeave={onCropPointerUp}
                       >
                         <div className={`absolute inset-0 ${draggingCrop ? 'ring-2 ring-amber-400/70' : ''}`} />
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute left-1/3 top-0 h-full w-px bg-white/70" />
+                          <div className="absolute left-2/3 top-0 h-full w-px bg-white/70" />
+                          <div className="absolute top-1/3 left-0 w-full h-px bg-white/70" />
+                          <div className="absolute top-2/3 left-0 w-full h-px bg-white/70" />
+                        </div>
                         {['nw', 'ne', 'sw', 'se'].map((handle) => {
                           const positions: Record<string, string> = {
                             nw: 'top-0 left-0',

@@ -137,6 +137,7 @@ export function useFilmLabState() {
   const overlayImgRef = useRef<HTMLImageElement[]>([]);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
   const originalImageDataRef = useRef<ImageData | null>(null);
+  const cropResetImageDataRef = useRef<ImageData | null>(null);
   const originalImageData = originalImageDataRef.current;
 
   useEffect(() => {
@@ -423,6 +424,7 @@ export function useFilmLabState() {
     setProcessedImageData(null);
     setImageData(entry.data);
     originalImageDataRef.current = entry.data;
+    cropResetImageDataRef.current = null;
     setSelectedPreset(entry.editState.selectedPreset);
     setFrameColor(entry.editState.frameColor);
     setFrameThickness(entry.editState.frameThickness);
@@ -584,6 +586,7 @@ export function useFilmLabState() {
     setProcessedImageData(null);
     setImageData(entry.data);
     originalImageDataRef.current = entry.data;
+    cropResetImageDataRef.current = null;
     setHistory([]);
     setRedoStack([]);
     setCropMode(false);
@@ -652,6 +655,7 @@ export function useFilmLabState() {
   const restoreSnapshot = useCallback((snapshot: HistoryEntry) => {
     setImageData(snapshot.imageData);
     originalImageDataRef.current = snapshot.imageData;
+    cropResetImageDataRef.current = null;
     setImage(new Image());
     setSelectedPreset(snapshot.selectedPreset);
     setGrainAmount(snapshot.grainAmount);
@@ -802,6 +806,7 @@ export function useFilmLabState() {
   const applyRotation = useCallback((angle: number) => {
     if (!imageData) return;
     pushHistory();
+    cropResetImageDataRef.current = null;
     const rotated = rotateImageData(imageData, angle);
     setImageData(rotated);
     originalImageDataRef.current = rotated;
@@ -812,6 +817,7 @@ export function useFilmLabState() {
   const applyCrop = useCallback(() => {
     if (!imageData || !cropRect) return;
     pushHistory();
+    cropResetImageDataRef.current = imageData;
     const cropped = cropImageDataRect(imageData, cropRect);
     setImageData(cropped);
     originalImageDataRef.current = cropped;
@@ -938,6 +944,17 @@ export function useFilmLabState() {
     }
     setDraggingCrop(false);
     cropDragRef.current = null;
+  }, []);
+
+  const resetCrop = useCallback(() => {
+    setCropMode(false);
+    setCropRect(null);
+    if (cropResetImageDataRef.current) {
+      setImageData(cropResetImageDataRef.current);
+      originalImageDataRef.current = cropResetImageDataRef.current;
+      setProcessedImageData(null);
+      cropResetImageDataRef.current = null;
+    }
   }, []);
 
   const resetTransform = useCallback(() => {
@@ -1647,6 +1664,7 @@ const curveOverridesExist = useMemo(() => {
     currentParams,
     currentPreset,
     originalImageData,
+    resetCrop,
     frameBackground,
     framePadding,
     frameAspectRatio,
