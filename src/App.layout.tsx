@@ -449,7 +449,7 @@ export default function AppLayout() {
                 <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.levels ? 'rotate-90' : ''}`} />
                 <SectionHeader title="Levels" icon={<LevelsIcon />} />
               </button>
-              {openSections.levels && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.levels ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="mt-2">
                   <LevelsHistogram
                     histogram={levelsHistogram}
@@ -461,7 +461,7 @@ export default function AppLayout() {
                     onGammaChange={setLevelsGamma}
                   />
                 </div>
-              )}
+              </div>
             </div>
             <div className="mt-3 px-1 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
@@ -522,8 +522,7 @@ export default function AppLayout() {
               <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.presets ? 'rotate-90' : ''}`} />
               <SectionHeader title="Presets" icon={<PresetIcon />} />
             </button>
-            {openSections.presets && (
-              <>
+            <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.presets ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="flex flex-wrap gap-2">
                   {presetCategories.map((category) => {
                     const label = category === 'favorites' ? 'Favorites' : typeLabels[category];
@@ -619,8 +618,8 @@ export default function AppLayout() {
               })}
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
           <div className="border-t border-zinc-800/50">
               <div className="px-3 pt-3 pb-1">
                 <button
@@ -632,7 +631,7 @@ export default function AppLayout() {
                   <SectionHeader title="Tone" icon={<ToneIcon />} />
                 </button>
               </div>
-              {openSections.tone && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.tone ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-2 space-y-1.5">
                 <SliderControl label="White Balance" value={eff.whiteBalance} min={-1} max={1} step={0.05}
                   defaultValue={selectedPreset.whiteBalance} onChange={setWhiteBalance} format={(v) => v > 0 ? `+${(v * 100).toFixed(0)}% Warm` : v < 0 ? `${(v * 100).toFixed(0)}% Cool` : 'Neutral'} icon={<WhiteBalanceIcon />} />
@@ -647,7 +646,7 @@ export default function AppLayout() {
                 <SliderControl label="Push / Pull" value={eff.pushPull} min={-1} max={1} step={0.01}
                   defaultValue={selectedPreset.pushPull ?? 0} onChange={setPushPullAmount} format={(v) => v > 0 ? `Push +${(v * 100).toFixed(0)}%` : v < 0 ? `Pull ${Math.abs(Math.round(v * 100))}%` : 'Neutral'} icon={<ContrastIcon />} />
               </div>
-              )}
+              </div>
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40 flex items-center justify-between gap-3">
                 <button
                   type="button"
@@ -669,7 +668,7 @@ export default function AppLayout() {
                   Reset
                 </button>
               </div>
-              {openSections.curves && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.curves ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3">
                   <CurvesEditor
                     activeChannel={curveChannel}
@@ -678,7 +677,7 @@ export default function AppLayout() {
                     onCurveChange={handleCurveChange}
                   />
                 </div>
-              )}
+              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40 flex items-center justify-between">
                 <button
@@ -697,7 +696,7 @@ export default function AppLayout() {
                   <DiceIcon /> New Pattern
                 </button>
               </div>
-              {openSections.filmGrain && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.filmGrain ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-2 space-y-1.5">
                   <SliderControl label="Amount" value={eff.grainAmount} min={0} max={1} step={0.01}
                     defaultValue={selectedPreset.grainAmount} onChange={setGrainAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
@@ -706,7 +705,7 @@ export default function AppLayout() {
                   <SliderControl label="Roughness" value={eff.grainRoughness} min={0} max={1} step={0.01}
                     defaultValue={selectedPreset.grainRoughness} onChange={setGrainRoughness} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<GrainIconSmall />} />
                 </div>
-              )}
+              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -718,7 +717,7 @@ export default function AppLayout() {
                   <SectionHeader title="Effects" icon={<EffectsIcon />} />
                 </button>
               </div>
-              {openSections.effects && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.effects ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-2 space-y-1.5">
                   <SliderControl label="Vignette" value={eff.vignette} min={0} max={0.6} step={0.01}
                     defaultValue={selectedPreset.vignette} onChange={setVignetteAmount} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<VignetteIcon />} />
@@ -729,7 +728,7 @@ export default function AppLayout() {
                   <SliderControl label="Faded Blacks" value={eff.fadedBlacks} min={0} max={0.25} step={0.005}
                     defaultValue={selectedPreset.fadedBlacks} onChange={setFadedBlacks} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<FadedBlacksIcon />} />
                 </div>
-              )}
+              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -741,7 +740,7 @@ export default function AppLayout() {
                   <SectionHeader title="Optical Effects" icon={<OpticalIcon />} />
                 </button>
               </div>
-              {openSections.opticalEffects && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.opticalEffects ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3 space-y-1.5">
                 <SliderControl label="Purple Fringing" value={eff.purpleFringing} min={0} max={1} step={0.01}
                   defaultValue={selectedPreset.purpleFringing} onChange={setPurpleFringing} format={(v) => `${(v * 100).toFixed(0)}%`} icon={<PurpleFringingIcon />} />
@@ -752,7 +751,7 @@ export default function AppLayout() {
                 <SliderControl label="Color Shift Y" value={eff.colorShiftY} min={-1} max={1} step={0.05}
                   defaultValue={selectedPreset.colorShiftY} onChange={setColorShiftY} format={(v) => `${v > 0 ? '+' : ''}${(v * 100).toFixed(0)}%`} icon={<ColorShiftIcon />} />
               </div>
-              )}
+              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -764,7 +763,7 @@ export default function AppLayout() {
                   <SectionHeader title="Overlays" icon={<OverlayIcon />} />
                 </button>
               </div>
-              {openSections.overlays && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.overlays ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-2">
                   <div className="flex gap-1 mb-2">
                   {overlayCategoryOptions.map((cat) => {
@@ -857,7 +856,6 @@ export default function AppLayout() {
                   </div>
                 )}
               </div>
-              )}
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -869,7 +867,7 @@ export default function AppLayout() {
                   <SectionHeader title="Frame" icon={<FrameIcon />} />
                 </button>
               </div>
-              {openSections.frame && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.frame ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3 space-y-1.5">
                   <div className="flex items-center gap-2">
                   {['none', 'white', 'black'].map((color) => (
@@ -899,7 +897,7 @@ export default function AppLayout() {
                   />
                 )}
               </div>
-              )}
+              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -911,7 +909,7 @@ export default function AppLayout() {
                   <SectionHeader title="Film Frame" icon={<FrameIcon />} />
                 </button>
               </div>
-              {openSections.filmFrame && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.filmFrame ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3">
                   <div className="grid grid-cols-4 gap-1.5">
                   <button
@@ -939,7 +937,7 @@ export default function AppLayout() {
                   ))}
                 </div>
               </div>
-              )}
+              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -951,7 +949,7 @@ export default function AppLayout() {
                   <SectionHeader title="Crop & Rotate" icon={<CropIcon />} />
                 </button>
               </div>
-              {openSections.cropRotate && (
+              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.cropRotate ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
                 <div className="px-3 pb-3 space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {['original', '1:1', '4:3', '16:9'].map((ratio) => (
@@ -1017,7 +1015,7 @@ export default function AppLayout() {
                   </button>
                 </div>
               </div>
-              )}
+              </div>
 
               {hasOverrides && (
                 <div className="px-3 pb-3">
@@ -1041,8 +1039,8 @@ export default function AppLayout() {
                     <span className="ml-auto text-[10px] uppercase tracking-[0.2em] text-amber-400">Delete</span>
                   )}
                 </button>
-                {openSections.customPreset && (
-                  <>
+                <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.customPreset ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
+                  <div className="space-y-3 pt-3">
                     <input
                       value={customPresetName}
                       onChange={(e) => setCustomPresetName(e.target.value)}
@@ -1061,8 +1059,8 @@ export default function AppLayout() {
                     >
                       Save Preset
                     </button>
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
