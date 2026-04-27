@@ -346,6 +346,45 @@ export default function AppLayout() {
         minHeight: 0,
         marginInline: 'auto',
       };
+  const rotatedFrameClipPath = selectedFrame && frameRotation % 360 !== 0
+    ? (() => {
+        const angle = (frameRotation * Math.PI) / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const corners = [
+          { x: -0.5, y: -0.5 },
+          { x: 0.5, y: -0.5 },
+          { x: 0.5, y: 0.5 },
+          { x: -0.5, y: 0.5 },
+        ];
+        return `polygon(${corners.map(({ x, y }) => {
+          const rx = 50 + (x * cos - y * sin) * 100;
+          const ry = 50 + (x * sin + y * cos) * 100;
+          return `${rx}% ${ry}%`;
+        }).join(',')})`;
+      })()
+    : undefined;
+  const frameImageWrapperStyle = selectedFrame && frameRotation % 180 !== 0 && frameAspect
+    ? {
+        position: 'absolute' as const,
+        top: '50%',
+        left: '50%',
+        width: `${100 / frameAspect}%`,
+        height: `${100 * frameAspect}%`,
+        transform: `translate(-50%, -50%) rotate(${frameRotation}deg)`,
+        transformOrigin: 'center center',
+      }
+    : {
+        position: 'absolute' as const,
+        inset: 0,
+        transform: `rotate(${frameRotation}deg)`,
+        transformOrigin: 'center center',
+      };
+  const frameImageStyle = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+  };
   const wrapperTransformStyle = (zoom !== 1 || offset.x !== 0 || offset.y !== 0)
     ? {
         transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
@@ -1338,6 +1377,8 @@ export default function AppLayout() {
                       maxHeight: '100%',
                       width: '100%',
                       height: '100%',
+                      clipPath: rotatedFrameClipPath,
+                      WebkitClipPath: rotatedFrameClipPath,
                     }}
                   />
                   <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}>
@@ -1350,6 +1391,8 @@ export default function AppLayout() {
                         maxHeight: '100%',
                         width: '100%',
                         height: '100%',
+                        clipPath: rotatedFrameClipPath,
+                        WebkitClipPath: rotatedFrameClipPath,
                       }}
                     />
                   </div>
@@ -1377,18 +1420,11 @@ export default function AppLayout() {
                 <div className="absolute top-2 left-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">Original</div>
                 <div className="absolute top-2 right-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">{selectedPreset.name}</div>
                 {selectedFrame && (
-                  <img
-                    src={selectedFrame}
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      transform: `rotate(${frameRotation}deg)`,
-                      transformOrigin: 'center center',
-                    }}
-                    alt=""
-                  />
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div style={frameImageWrapperStyle}>
+                      <img src={selectedFrame} className="block pointer-events-none" style={frameImageStyle} alt="" />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -1412,6 +1448,8 @@ export default function AppLayout() {
                         maxHeight: '100%',
                         display: 'block',
                         touchAction: 'none',
+                        clipPath: rotatedFrameClipPath,
+                        WebkitClipPath: rotatedFrameClipPath,
                       }}
                     />
                     {cropMode && cropRect && (
@@ -1462,18 +1500,11 @@ export default function AppLayout() {
                     )}
                   </div>
                   {!showOriginal && selectedFrame && (
-                    <img
-                      src={selectedFrame}
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        transform: `rotate(${frameRotation}deg)`,
-                        transformOrigin: 'center center',
-                      }}
-                      alt=""
-                    />
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                      <div style={frameImageWrapperStyle}>
+                        <img src={selectedFrame} className="block pointer-events-none" style={frameImageStyle} alt="" />
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

@@ -7,7 +7,7 @@ import {
   saveToStorage,
   CANVAS_BLEND,
   drawImageCover,
-  drawImageContainRotated,
+  drawImageCoverRotated,
   drawImageDataRotated,
   getCanvasImageSourceDimensions,
   rotateImageData,
@@ -775,6 +775,15 @@ export function useFilmLabState() {
     });
   }, []);
 
+  const clipRotatedFrame = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, angle: number) => {
+    const normalized = ((angle % 360) + 360) % 360;
+    ctx.translate(x + width / 2, y + height / 2);
+    ctx.rotate((normalized * Math.PI) / 180);
+    ctx.beginPath();
+    ctx.rect(-width / 2, -height / 2, width, height);
+    ctx.clip();
+  };
+
   const buildExportCanvas = useCallback(async (sourceCanvas: HTMLCanvasElement, editState: BatchImageEditState) => {
     const thicknessPx = editState.frameColor === 'none' ? 0 : Math.round((editState.frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
     const baseCanvas = document.createElement('canvas');
@@ -865,14 +874,20 @@ export function useFilmLabState() {
         sh = srcWidth / targetAR;
         sy = (srcHeight - sh) / 2;
       }
-      baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
-
-      drawOverlays(baseCtx, frameX, frameY, drawWidth, drawHeight);
 
       if (img) {
         baseCtx.save();
+        clipRotatedFrame(baseCtx, frameX, frameY, drawWidth, drawHeight, editState.frameRotation);
+      }
+
+      baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
+      drawOverlays(baseCtx, frameX, frameY, drawWidth, drawHeight);
+
+      if (img) {
+        baseCtx.restore();
+        baseCtx.save();
         baseCtx.translate(frameX, frameY);
-        drawImageContainRotated(baseCtx, img, drawWidth, drawHeight, editState.frameRotation);
+        drawImageCoverRotated(baseCtx, img, drawWidth, drawHeight, editState.frameRotation);
         baseCtx.restore();
       }
 
@@ -1366,6 +1381,9 @@ export function useFilmLabState() {
         sh = srcWidth / targetAR;
         sy = (srcHeight - sh) / 2;
       }
+
+      baseCtx.save();
+      clipRotatedFrame(baseCtx, frameX, frameY, drawWidth, drawHeight, frameRotation);
       baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
 
       if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
@@ -1412,9 +1430,10 @@ export function useFilmLabState() {
         });
       }
 
+      baseCtx.restore();
       baseCtx.save();
       baseCtx.translate(frameX, frameY);
-      drawImageContainRotated(baseCtx, img, drawWidth, drawHeight, frameRotation);
+      drawImageCoverRotated(baseCtx, img, drawWidth, drawHeight, frameRotation);
       baseCtx.restore();
       const croppedCanvas = document.createElement('canvas');
       croppedCanvas.width = drawWidth;
