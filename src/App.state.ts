@@ -777,7 +777,10 @@ export function useFilmLabState() {
     const overlayImgs = await Promise.all(editState.selectedOverlays.map((url) => loadImage(url)));
     const loadedOverlays = overlayImgs.filter(Boolean) as HTMLImageElement[];
 
-    const drawOverlays = (ctx: CanvasRenderingContext2D, targetX: number, targetY: number, targetWidth: number, targetHeight: number) => {
+    const sourceImageData = sourceCanvas.getContext('2d')!.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+    drawImageDataRotated(baseCtx, sourceImageData, editState.rotation || 0);
+
+    const drawOverlays = (ctx: CanvasRenderingContext2D, targetWidth: number, targetHeight: number) => {
       if (loadedOverlays.length === 0) return;
       loadedOverlays.forEach((img, index) => {
         const category = OVERLAY_CATEGORY_MAP.get(editState.selectedOverlays[index]);
@@ -785,13 +788,30 @@ export function useFilmLabState() {
         ctx.save();
         ctx.globalAlpha = editState.overlayOpacityByCategory[category];
         ctx.globalCompositeOperation = CANVAS_BLEND[editState.overlayBlendByCategory[category]] || 'source-over';
-        drawImageCover(ctx, img, targetWidth, targetHeight);
+        if (category === 'frames') {
+          drawImageContainRotated(
+            ctx,
+            img,
+            targetWidth,
+            targetHeight,
+            editState.overlayRotationByCategory[category] ?? 0,
+            editState.overlayZoomByCategory[category] ?? 1,
+          );
+        } else {
+          drawImageCoverRotated(
+            ctx,
+            img,
+            targetWidth,
+            targetHeight,
+            editState.overlayRotationByCategory[category] ?? 0,
+            editState.overlayZoomByCategory[category] ?? 1,
+          );
+        }
         ctx.restore();
       });
     };
 
-    baseCtx.drawImage(sourceCanvas, 0, 0);
-    drawOverlays(baseCtx, 0, 0, sourceCanvas.width, sourceCanvas.height);
+    drawOverlays(baseCtx, sourceCanvas.width, sourceCanvas.height);
     return baseCanvas;
   }, [loadImage]);
 
