@@ -7,6 +7,7 @@ import {
   saveToStorage,
   CANVAS_BLEND,
   drawImageCover,
+  drawImageContainRotated,
   drawImageDataRotated,
   getCanvasImageSourceDimensions,
   rotateImageData,
@@ -86,6 +87,7 @@ export function useFilmLabState() {
   const [overlayImagesLoadedAt, setOverlayImagesLoadedAt] = useState(0);
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [frameAspectRatio, setFrameAspectRatio] = useState<number | null>(null);
+  const [frameRotation, setFrameRotation] = useState(0);
   const [rotation, setRotation] = useState(0);
   const clampRotationValue = useCallback((value: number) => Math.min(45, Math.max(-45, value)), []);
 
@@ -421,6 +423,7 @@ export function useFilmLabState() {
     overlayOpacityByCategory,
     overlayBlendByCategory,
     selectedFrame,
+    frameRotation,
     rotation,
     grainAmount,
     grainSize,
@@ -466,6 +469,7 @@ export function useFilmLabState() {
     setOverlayOpacityByCategory(entry.editState.overlayOpacityByCategory);
     setOverlayBlendByCategory(entry.editState.overlayBlendByCategory);
     setSelectedFrame(entry.editState.selectedFrame);
+    setFrameRotation(entry.editState.frameRotation);
     setRotation(clampRotationValue(entry.editState.rotation));
     setGrainAmount(entry.editState.grainAmount);
     setGrainSize(entry.editState.grainSize);
@@ -593,6 +597,7 @@ export function useFilmLabState() {
     setOverlayOpacityByCategory(entry.editState.overlayOpacityByCategory);
     setOverlayBlendByCategory(entry.editState.overlayBlendByCategory);
     setSelectedFrame(entry.editState.selectedFrame);
+    setFrameRotation(entry.editState.frameRotation);
     setRotation(clampRotationValue(entry.editState.rotation));
     setGrainAmount(entry.editState.grainAmount);
     setGrainSize(entry.editState.grainSize);
@@ -681,10 +686,11 @@ export function useFilmLabState() {
       overlayOpacityByCategory,
       overlayBlendByCategory,
       selectedFrame,
+      frameRotation,
       rotation,
       activeBatchIndex,
     };
-  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, rotation, activeBatchIndex]);
+  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, frameRotation, rotation, activeBatchIndex]);
 
   const restoreSnapshot = useCallback((snapshot: HistoryEntry) => {
     setImageData(snapshot.imageData);
@@ -720,6 +726,7 @@ export function useFilmLabState() {
     setOverlayOpacityByCategory(snapshot.overlayOpacityByCategory);
     setOverlayBlendByCategory(snapshot.overlayBlendByCategory);
     setSelectedFrame(snapshot.selectedFrame);
+    setFrameRotation(snapshot.frameRotation);
     setRotation(clampRotationValue(snapshot.rotation));
     setActiveBatchIndex(snapshot.activeBatchIndex);
   }, [clampRotationValue]);
@@ -863,7 +870,10 @@ export function useFilmLabState() {
       drawOverlays(baseCtx, frameX, frameY, drawWidth, drawHeight);
 
       if (img) {
-        baseCtx.drawImage(img, frameX, frameY, drawWidth, drawHeight);
+        baseCtx.save();
+        baseCtx.translate(frameX, frameY);
+        drawImageContainRotated(baseCtx, img, drawWidth, drawHeight, editState.frameRotation);
+        baseCtx.restore();
       }
 
       const croppedCanvas = document.createElement('canvas');
@@ -1402,7 +1412,10 @@ export function useFilmLabState() {
         });
       }
 
-      baseCtx.drawImage(img, frameX, frameY, drawWidth, drawHeight);
+      baseCtx.save();
+      baseCtx.translate(frameX, frameY);
+      drawImageContainRotated(baseCtx, img, drawWidth, drawHeight, frameRotation);
+      baseCtx.restore();
       const croppedCanvas = document.createElement('canvas');
       croppedCanvas.width = drawWidth;
       croppedCanvas.height = drawHeight;
@@ -1780,6 +1793,7 @@ const curveOverridesExist = useMemo(() => {
     setOverlayOpacityByCategory,
     setOverlayBlendByCategory,
     setSelectedFrame,
+    setFrameRotation,
     setGrainAmount,
     setGrainSize,
     setGrainRoughness,
@@ -1835,6 +1849,7 @@ const curveOverridesExist = useMemo(() => {
     resetCrop,
     frameBackground,
     framePadding,
+    frameRotation,
     frameAspectRatio,
     getCurrentBatchEditState,
     displayedPresets,

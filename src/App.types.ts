@@ -13,6 +13,7 @@ export interface BatchImageEditState {
   overlayOpacityByCategory: Record<OverlayCategory, number>;
   overlayBlendByCategory: Record<OverlayCategory, BlendMode>;
   selectedFrame: string | null;
+  frameRotation: number;
   rotation: number;
   grainAmount: number | null;
   grainSize: number | null;
@@ -88,6 +89,7 @@ export interface HistoryEntry {
   overlayOpacityByCategory: Record<OverlayCategory, number>;
   overlayBlendByCategory: Record<OverlayCategory, BlendMode>;
   selectedFrame: string | null;
+  frameRotation: number;
   rotation: number;
   activeBatchIndex: number | null;
 }

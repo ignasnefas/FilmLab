@@ -190,6 +190,7 @@ export default function AppLayout() {
     overlayBlendByCategory,
     selectedFrame,
     frameAspectRatio,
+    frameRotation,
     rotation,
     canvasRef,
     originalCanvasRef,
@@ -233,6 +234,7 @@ export default function AppLayout() {
     setOverlayOpacityByCategory,
     setOverlayBlendByCategory,
     setSelectedFrame,
+    setFrameRotation,
     setGrainAmount,
     setGrainSize,
     setGrainRoughness,
@@ -314,7 +316,7 @@ export default function AppLayout() {
   const presetCategories = ['all', 'color-negative', 'bw-negative', 'slide', 'cinema', 'custom', 'favorites'] as const;
   const activeCategory = showFavoritesOnly ? 'favorites' : filterType;
   const frameAspect = selectedFrame && frameAspectRatio
-    ? frameAspectRatio
+    ? (frameRotation % 180 === 0 ? frameAspectRatio : 1 / frameAspectRatio)
     : null;
   const bottomSheetHeight = sidebarOpen && isMobile ? `${mobileSheetHeight}vh` : '0px';
   const imageMaxHeight = isMobile
@@ -981,6 +983,40 @@ export default function AppLayout() {
                     format={(v) => `${Math.round(v)}%`}
                   />
                 )}
+                {selectedFrame && (
+                  <div className="rounded-3xl border border-zinc-700/60 bg-zinc-950/60 p-4 mt-3">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Orientation</p>
+                        <h3 className="text-sm font-semibold text-white">Frame rotation</h3>
+                      </div>
+                      <span className="text-xs text-zinc-400">{frameRotation}°</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFrameRotation((prev) => (prev + 270) % 360)}
+                        className="flex-1 rounded-full border border-zinc-700/80 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 transition"
+                      >
+                        ⟲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFrameRotation((prev) => (prev + 90) % 360)}
+                        className="flex-1 rounded-full border border-zinc-700/80 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 transition"
+                      >
+                        ⟳
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFrameRotation(0)}
+                        className="flex-1 rounded-full border border-zinc-700/80 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 transition"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                )}
                 </div>
 
                 <div className="px-3 pb-3 border-t border-zinc-800/40">
@@ -1348,6 +1384,8 @@ export default function AppLayout() {
                       width: '100%',
                       height: '100%',
                       objectFit: 'contain',
+                      transform: `rotate(${frameRotation}deg)`,
+                      transformOrigin: 'center center',
                     }}
                     alt=""
                   />
@@ -1431,6 +1469,8 @@ export default function AppLayout() {
                         width: '100%',
                         height: '100%',
                         objectFit: 'contain',
+                        transform: `rotate(${frameRotation}deg)`,
+                        transformOrigin: 'center center',
                       }}
                       alt=""
                     />
