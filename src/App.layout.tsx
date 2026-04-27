@@ -191,6 +191,7 @@ export default function AppLayout() {
     selectedFrame,
     frameAspectRatio,
     frameRotation,
+    frameScale,
     rotation,
     canvasRef,
     originalCanvasRef,
@@ -229,6 +230,7 @@ export default function AppLayout() {
     setShowFavoritesOnly,
     setFrameColor,
     setFrameThickness,
+    setFrameScale,
     setOverlayCategories,
     setSelectedOverlays,
     setOverlayOpacityByCategory,
@@ -346,22 +348,30 @@ export default function AppLayout() {
         minHeight: 0,
         marginInline: 'auto',
       };
-  const rotatedFrameClipPath = selectedFrame && frameRotation % 360 !== 0
+  const rotatedFrameClipPath = selectedFrame
     ? (() => {
-        const angle = (frameRotation * Math.PI) / 180;
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-        const corners = [
-          { x: -0.5, y: -0.5 },
-          { x: 0.5, y: -0.5 },
-          { x: 0.5, y: 0.5 },
-          { x: -0.5, y: 0.5 },
-        ];
-        return `polygon(${corners.map(({ x, y }) => {
-          const rx = 50 + (x * cos - y * sin) * 100;
-          const ry = 50 + (x * sin + y * cos) * 100;
-          return `${rx}% ${ry}%`;
-        }).join(',')})`;
+        const scale = frameScale;
+        const normalized = ((frameRotation % 360) + 360) % 360;
+
+        if (normalized !== 0) {
+          const angle = (frameRotation * Math.PI) / 180;
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const corners = [
+            { x: -0.5, y: -0.5 },
+            { x: 0.5, y: -0.5 },
+            { x: 0.5, y: 0.5 },
+            { x: -0.5, y: 0.5 },
+          ];
+          return `polygon(${corners.map(({ x, y }) => {
+            const rx = 50 + (x * cos - y * sin) * 100 * scale;
+            const ry = 50 + (x * sin + y * cos) * 100 * scale;
+            return `${rx}% ${ry}%`;
+          }).join(',')})`;
+        }
+
+        const inset = (1 - scale) * 50;
+        return `inset(${inset}% ${inset}% ${inset}% ${inset}%)`;
       })()
     : undefined;
   const frameImageWrapperStyle = selectedFrame && frameRotation % 180 !== 0 && frameAspect
@@ -371,13 +381,13 @@ export default function AppLayout() {
         left: '50%',
         width: `${100 / frameAspect}%`,
         height: `${100 * frameAspect}%`,
-        transform: `translate(-50%, -50%) rotate(${frameRotation}deg)`,
+        transform: `translate(-50%, -50%) rotate(${frameRotation}deg) scale(${frameScale})`,
         transformOrigin: 'center center',
       }
     : {
         position: 'absolute' as const,
         inset: 0,
-        transform: `rotate(${frameRotation}deg)`,
+        transform: `rotate(${frameRotation}deg) scale(${frameScale})`,
         transformOrigin: 'center center',
       };
   const frameImageStyle = {
@@ -1053,6 +1063,25 @@ export default function AppLayout() {
                       >
                         Reset
                       </button>
+                    </div>
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Scale</p>
+                          <h3 className="text-sm font-semibold text-white">Frame size</h3>
+                        </div>
+                        <span className="text-xs text-zinc-400">{Math.round(frameScale * 100)}%</span>
+                      </div>
+                      <SliderControl
+                        label="Frame size"
+                        value={frameScale}
+                        min={0.5}
+                        max={1.5}
+                        step={0.01}
+                        defaultValue={1}
+                        onChange={(v) => setFrameScale(v ?? 1)}
+                        format={(v) => `${Math.round(v * 100)}%`}
+                      />
                     </div>
                   </div>
                 )}

@@ -88,6 +88,7 @@ export function useFilmLabState() {
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [frameAspectRatio, setFrameAspectRatio] = useState<number | null>(null);
   const [frameRotation, setFrameRotation] = useState(0);
+  const [frameScale, setFrameScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const clampRotationValue = useCallback((value: number) => Math.min(45, Math.max(-45, value)), []);
 
@@ -424,6 +425,7 @@ export function useFilmLabState() {
     overlayBlendByCategory,
     selectedFrame,
     frameRotation,
+    frameScale,
     rotation,
     grainAmount,
     grainSize,
@@ -687,6 +689,7 @@ export function useFilmLabState() {
       overlayBlendByCategory,
       selectedFrame,
       frameRotation,
+      frameScale,
       rotation,
       activeBatchIndex,
     };
@@ -727,6 +730,7 @@ export function useFilmLabState() {
     setOverlayBlendByCategory(snapshot.overlayBlendByCategory);
     setSelectedFrame(snapshot.selectedFrame);
     setFrameRotation(snapshot.frameRotation);
+    setFrameScale(snapshot.frameScale);
     setRotation(clampRotationValue(snapshot.rotation));
     setActiveBatchIndex(snapshot.activeBatchIndex);
   }, [clampRotationValue]);
@@ -1432,7 +1436,9 @@ export function useFilmLabState() {
 
       baseCtx.restore();
       baseCtx.save();
-      baseCtx.translate(frameX, frameY);
+      baseCtx.translate(frameX + drawWidth / 2, frameY + drawHeight / 2);
+      baseCtx.scale(frameScale, frameScale);
+      baseCtx.translate(-drawWidth / 2, -drawHeight / 2);
       drawImageCoverRotated(baseCtx, img, drawWidth, drawHeight, frameRotation);
       baseCtx.restore();
       const croppedCanvas = document.createElement('canvas');
@@ -1733,11 +1739,12 @@ const curveOverridesExist = useMemo(() => {
     splitView,
     splitPos,
     draggingSplit,
+    sidebarOpen,
     frameColor,
     frameThickness,
+    frameScale,
     grainSeed,
     loadingDemo,
-    sidebarOpen,
     isAboutOpen,
     zoom,
     offset,
@@ -1807,6 +1814,7 @@ const curveOverridesExist = useMemo(() => {
     setShowFavoritesOnly,
     setFrameColor,
     setFrameThickness,
+    setFrameScale,
     setOverlayCategories,
     setSelectedOverlays,
     setOverlayOpacityByCategory,
