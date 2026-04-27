@@ -1,7 +1,7 @@
 import type { ReactNode, SVGProps } from 'react';
 
 export type BlendMode = 'screen' | 'multiply' | 'overlay' | 'soft-light' | 'normal';
-export type OverlayCategory = 'lightleaks' | 'bokeh' | 'textures' | 'paper';
+export type OverlayCategory = 'lightleaks' | 'bokeh' | 'textures' | 'paper' | 'frames';
 export type FilmType = 'all' | 'color-negative' | 'bw-negative' | 'slide' | 'cinema';
 
 export const PRESET_STORAGE_KEY = 'filmLabCustomPresets';
@@ -120,6 +120,24 @@ export const ResetIcon = () => (
   </svg>
 );
 
+export const RotateIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M4 10a6 6 0 1111.9 1.2" strokeLinecap="round" />
+      <path d="M16 4v4h-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </SectionIcon>
+);
+
+export const ZoomIcon = () => (
+  <SectionIcon>
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="9" cy="9" r="4" />
+      <path d="M13 13l4 4" strokeLinecap="round" />
+    </svg>
+  </SectionIcon>
+);
+
 export const LevelsIcon = () => (
   <SectionIcon>
     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -180,15 +198,6 @@ export const OverlayIcon = () => (
     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
       <rect x="3" y="3" width="14" height="14" rx="2" />
       <rect x="6" y="6" width="10" height="10" rx="1" fill="currentColor" opacity="0.15" />
-    </svg>
-  </SectionIcon>
-);
-
-export const FrameIcon = () => (
-  <SectionIcon>
-    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x="4" y="4" width="12" height="12" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 4v4M4 8h4" strokeLinecap="round" />
     </svg>
   </SectionIcon>
 );
@@ -372,6 +381,13 @@ export const OVERLAYS: Record<OverlayCategory, { label: string; urls: string[]; 
     defaultBlend: 'screen',
     defaultOpacity: 0.6,
   },
+  frames: {
+    label: 'Frames',
+    urls: Object.values(import.meta.glob('./frames/frame*.webp', { query: '?url', import: 'default', eager: true }) as Record<string, string>).sort(),
+    thumbs: Object.values(import.meta.glob('./frames/frame*.webp', { query: '?url', import: 'default', eager: true }) as Record<string, string>).sort(),
+    defaultBlend: 'normal',
+    defaultOpacity: 1,
+  },
   paper: {
     label: 'Paper',
     urls: Object.values(import.meta.glob('./overlays/paper*.webp', { query: '?url', import: 'default', eager: true }) as Record<string, string>).sort(),
@@ -380,10 +396,6 @@ export const OVERLAYS: Record<OverlayCategory, { label: string; urls: string[]; 
     defaultOpacity: 0.8,
   },
 };
-
-export const FRAME_URLS = Object.values(
-  import.meta.glob('./frames/*.webp', { query: '?url', import: 'default', eager: true }) as Record<string, string>
-).sort();
 
 export const BLEND_MODES: { value: BlendMode; label: string }[] = [
   { value: 'screen', label: 'Screen' },
@@ -460,9 +472,9 @@ export function drawImageCover(ctx: CanvasRenderingContext2D, img: CanvasImageSo
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
 }
 
-export function drawImageCoverRotated(ctx: CanvasRenderingContext2D, img: CanvasImageSource, w: number, h: number, angle: number) {
+export function drawImageCoverRotated(ctx: CanvasRenderingContext2D, img: CanvasImageSource, w: number, h: number, angle: number, zoom = 1) {
   const normalized = ((angle % 360) + 360) % 360;
-  if (normalized === 0) {
+  if (normalized === 0 && zoom === 1) {
     drawImageCover(ctx, img, w, h);
     return;
   }
@@ -487,8 +499,8 @@ export function drawImageCoverRotated(ctx: CanvasRenderingContext2D, img: Canvas
     sy = Math.round((imgHeight - sh) / 2);
   }
 
-  const drawWidth = swap ? h : w;
-  const drawHeight = swap ? w : h;
+  const drawWidth = (swap ? h : w) * zoom;
+  const drawHeight = (swap ? w : h) * zoom;
 
   ctx.save();
   ctx.translate(w / 2, h / 2);
@@ -497,15 +509,15 @@ export function drawImageCoverRotated(ctx: CanvasRenderingContext2D, img: Canvas
   ctx.restore();
 }
 
-export function drawImageContainRotated(ctx: CanvasRenderingContext2D, img: CanvasImageSource, w: number, h: number, angle: number) {
+export function drawImageContainRotated(ctx: CanvasRenderingContext2D, img: CanvasImageSource, w: number, h: number, angle: number, zoom = 1) {
   const normalized = ((angle % 360) + 360) % 360;
   const swap = normalized === 90 || normalized === 270;
   const { width: imgWidth, height: imgHeight } = getCanvasImageSourceDimensions(img);
   const targetWidth = swap ? h : w;
   const targetHeight = swap ? w : h;
   const scale = Math.min(targetWidth / imgWidth, targetHeight / imgHeight);
-  const drawWidth = Math.round(imgWidth * scale);
-  const drawHeight = Math.round(imgHeight * scale);
+  const drawWidth = Math.round(imgWidth * scale * zoom);
+  const drawHeight = Math.round(imgHeight * scale * zoom);
 
   ctx.save();
   ctx.translate(w / 2, h / 2);

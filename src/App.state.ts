@@ -8,6 +8,7 @@ import {
   CANVAS_BLEND,
   drawImageCover,
   drawImageCoverRotated,
+  drawImageContainRotated,
   drawImageDataRotated,
   getCanvasImageSourceDimensions,
   rotateImageData,
@@ -22,14 +23,13 @@ import type {
   CropRatio,
   CropDragType,
   HistoryEntry,
-  FrameColor,
 } from './App.types';
 import type { OverlayCategory, BlendMode } from './App.helpers';
 import type { ProcessingParams } from './filmProcessor';
 import type { FilmPreset } from './filmPresets';
 
 const OVERLAY_CATEGORY_MAP = new Map<string, OverlayCategory>();
-(['lightleaks', 'bokeh', 'textures', 'paper'] as const).forEach((category) => {
+(['lightleaks', 'bokeh', 'textures', 'frames', 'paper'] as const).forEach((category) => {
   OVERLAYS[category].urls.forEach((url) => OVERLAY_CATEGORY_MAP.set(url, category));
 });
 
@@ -58,37 +58,46 @@ export function useFilmLabState() {
   const [splitView, setSplitView] = useState(false);
   const [splitPos, setSplitPos] = useState(50);
   const [draggingSplit, setDraggingSplit] = useState(false);
-  const [frameColor, setFrameColor] = useState<FrameColor>('none');
-  const [frameThickness, setFrameThickness] = useState(8);
   const [grainSeed, setGrainSeed] = useState(42);
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [framingToolOpen, setFramingToolOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const zoomRef = useRef(zoom);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const imageWrapperRef = useRef<HTMLDivElement>(null);
 
-  const [overlayCategories, setOverlayCategories] = useState<Array<'lightleaks' | 'bokeh' | 'textures' | 'paper'>>(['lightleaks']);
+  const [overlayCategories, setOverlayCategories] = useState<Array<'lightleaks' | 'bokeh' | 'textures' | 'frames' | 'paper'>>(['lightleaks']);
   const [selectedOverlays, setSelectedOverlays] = useState<string[]>([]);
   const [overlayOpacityByCategory, setOverlayOpacityByCategory] = useState<Record<OverlayCategory, number>>({
     lightleaks: 0.6,
     bokeh: 0.6,
     textures: 0.6,
+    frames: 1,
     paper: 0.8,
   });
   const [overlayBlendByCategory, setOverlayBlendByCategory] = useState<Record<OverlayCategory, BlendMode>>({
     lightleaks: 'screen',
     bokeh: 'screen',
     textures: 'screen',
+    frames: 'normal',
     paper: 'overlay',
   });
+  const [overlayRotationByCategory, setOverlayRotationByCategory] = useState<Record<OverlayCategory, number>>({
+    lightleaks: 0,
+    bokeh: 0,
+    textures: 0,
+    frames: 0,
+    paper: 0,
+  });
+  const [overlayZoomByCategory, setOverlayZoomByCategory] = useState<Record<OverlayCategory, number>>({
+    lightleaks: 1,
+    bokeh: 1,
+    textures: 1,
+    frames: 1,
+    paper: 1,
+  });
   const [overlayImagesLoadedAt, setOverlayImagesLoadedAt] = useState(0);
-  const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
-  const [frameAspectRatio, setFrameAspectRatio] = useState<number | null>(null);
-  const [frameRotation, setFrameRotation] = useState(0);
-  const [frameScale, setFrameScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const clampRotationValue = useCallback((value: number) => Math.min(45, Math.max(-45, value)), []);
 
@@ -144,7 +153,6 @@ export function useFilmLabState() {
   const workerRequestIdRef = useRef(0);
   const workerResolversRef = useRef(new Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void; }>());
   const overlayImgRef = useRef<HTMLImageElement[]>([]);
-  const frameImgRef = useRef<HTMLImageElement | null>(null);
   const originalImageDataRef = useRef<ImageData | null>(null);
   const cropResetImageDataRef = useRef<ImageData | null>(null);
   const originalImageData = originalImageDataRef.current;
@@ -220,15 +228,6 @@ export function useFilmLabState() {
     },
   }), [selectedPreset, curvePointsR, curvePointsG, curvePointsB]);
 
-  const frameBackground = frameColor === 'white' ? '#ffffff' : frameColor === 'black' ? '#000000' : 'transparent';
-  const framePreviewBase = canvasBounds
-    ? Math.max(canvasBounds.width, canvasBounds.height)
-    : imageData
-      ? Math.max(imageData.width, imageData.height)
-      : 0;
-  const framePadding = frameColor !== 'none' && framePreviewBase > 0
-    ? `${Math.round((frameThickness / 100) * framePreviewBase)}px`
-    : '0';
 
   useEffect(() => {
     const worker = new Worker(new URL('./filmWorker.ts', import.meta.url), { type: 'module' });
@@ -359,10 +358,28 @@ export function useFilmLabState() {
       ctx.save();
       ctx.globalAlpha = overlayOpacityByCategory[category];
       ctx.globalCompositeOperation = CANVAS_BLEND[overlayBlendByCategory[category]] || 'source-over';
-      drawImageCover(ctx, overlayImg, width, height);
+      if (category === 'frames') {
+        drawImageContainRotated(
+          ctx,
+          overlayImg,
+          width,
+          height,
+          overlayRotationByCategory[category] ?? 0,
+          overlayZoomByCategory[category] ?? 1,
+        );
+      } else {
+        drawImageCoverRotated(
+          ctx,
+          overlayImg,
+          width,
+          height,
+          overlayRotationByCategory[category] ?? 0,
+          overlayZoomByCategory[category] ?? 1,
+        );
+      }
       ctx.restore();
     });
-  }, [selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory]);
+  }, [selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, overlayRotationByCategory, overlayZoomByCategory]);
 
   const renderPreviewCanvas = useCallback((canvas: HTMLCanvasElement, source: ImageData, angle: number, drawOverlays: boolean) => {
     if (canvas.width !== source.width || canvas.height !== source.height) {
@@ -402,30 +419,13 @@ export function useFilmLabState() {
     });
   }, [selectedOverlays]);
 
-  useEffect(() => {
-    if (!selectedFrame) {
-      frameImgRef.current = null;
-      setFrameAspectRatio(null);
-      return;
-    }
-    const img = new Image();
-    img.onload = () => {
-      frameImgRef.current = img;
-      setFrameAspectRatio(img.naturalWidth / img.naturalHeight);
-    };
-    img.src = selectedFrame;
-  }, [selectedFrame]);
-
   const getCurrentBatchEditState = useCallback((): BatchImageEditState => ({
     selectedPreset: currentPreset,
-    frameColor,
-    frameThickness,
     selectedOverlays,
     overlayOpacityByCategory,
+    overlayRotationByCategory,
+    overlayZoomByCategory,
     overlayBlendByCategory,
-    selectedFrame,
-    frameRotation,
-    frameScale,
     rotation,
     grainAmount,
     grainSize,
@@ -449,7 +449,7 @@ export function useFilmLabState() {
     levelsGamma,
     levelsOutputBlack,
     levelsOutputWhite,
-  }), [selectedPreset, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
+  }), [selectedPreset, selectedOverlays, overlayOpacityByCategory, overlayRotationByCategory, overlayZoomByCategory, overlayBlendByCategory, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite]);
 
   const addBatchEntry = useCallback((entry: BatchImage) => {
     setBatchImages((prev) => {
@@ -465,13 +465,9 @@ export function useFilmLabState() {
     originalImageDataRef.current = entry.data;
     cropResetImageDataRef.current = null;
     setSelectedPreset(entry.editState.selectedPreset);
-    setFrameColor(entry.editState.frameColor);
-    setFrameThickness(entry.editState.frameThickness);
     setSelectedOverlays(entry.editState.selectedOverlays);
     setOverlayOpacityByCategory(entry.editState.overlayOpacityByCategory);
     setOverlayBlendByCategory(entry.editState.overlayBlendByCategory);
-    setSelectedFrame(entry.editState.selectedFrame);
-    setFrameRotation(entry.editState.frameRotation);
     setRotation(clampRotationValue(entry.editState.rotation));
     setGrainAmount(entry.editState.grainAmount);
     setGrainSize(entry.editState.grainSize);
@@ -593,13 +589,11 @@ export function useFilmLabState() {
     }
     setActiveBatchIndex(index);
     setSelectedPreset(entry.editState.selectedPreset);
-    setFrameColor(entry.editState.frameColor);
-    setFrameThickness(entry.editState.frameThickness);
     setSelectedOverlays(entry.editState.selectedOverlays);
     setOverlayOpacityByCategory(entry.editState.overlayOpacityByCategory);
+    setOverlayRotationByCategory(entry.editState.overlayRotationByCategory);
+    setOverlayZoomByCategory(entry.editState.overlayZoomByCategory);
     setOverlayBlendByCategory(entry.editState.overlayBlendByCategory);
-    setSelectedFrame(entry.editState.selectedFrame);
-    setFrameRotation(entry.editState.frameRotation);
     setRotation(clampRotationValue(entry.editState.rotation));
     setGrainAmount(entry.editState.grainAmount);
     setGrainSize(entry.editState.grainSize);
@@ -682,18 +676,15 @@ export function useFilmLabState() {
       levelsGamma,
       levelsOutputBlack,
       levelsOutputWhite,
-      frameColor,
-      frameThickness,
       selectedOverlays,
       overlayOpacityByCategory,
+      overlayRotationByCategory,
+      overlayZoomByCategory,
       overlayBlendByCategory,
-      selectedFrame,
-      frameRotation,
-      frameScale,
       rotation,
       activeBatchIndex,
     };
-  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, frameRotation, rotation, activeBatchIndex]);
+  }, [imageData, selectedPreset, grainAmount, grainSize, grainRoughness, vignetteAmount, halationAmount, contrastAmount, saturationAmount, brightnessAmount, fadedBlacks, exposure, purpleFringing, lensDistortion, colorShiftX, colorShiftY, whiteBalance, crossProcessAmount, pushPullAmount, levelsInputBlack, levelsInputWhite, levelsGamma, levelsOutputBlack, levelsOutputWhite, selectedOverlays, overlayOpacityByCategory, overlayRotationByCategory, overlayZoomByCategory, overlayBlendByCategory, rotation, activeBatchIndex]);
 
   const restoreSnapshot = useCallback((snapshot: HistoryEntry) => {
     setImageData(snapshot.imageData);
@@ -723,14 +714,11 @@ export function useFilmLabState() {
     setLevelsGamma(snapshot.levelsGamma);
     setLevelsOutputBlack(snapshot.levelsOutputBlack);
     setLevelsOutputWhite(snapshot.levelsOutputWhite);
-    setFrameColor(snapshot.frameColor);
-    setFrameThickness(snapshot.frameThickness);
     setSelectedOverlays(snapshot.selectedOverlays);
     setOverlayOpacityByCategory(snapshot.overlayOpacityByCategory);
+    setOverlayRotationByCategory(snapshot.overlayRotationByCategory);
+    setOverlayZoomByCategory(snapshot.overlayZoomByCategory);
     setOverlayBlendByCategory(snapshot.overlayBlendByCategory);
-    setSelectedFrame(snapshot.selectedFrame);
-    setFrameRotation(snapshot.frameRotation);
-    setFrameScale(snapshot.frameScale);
     setRotation(clampRotationValue(snapshot.rotation));
     setActiveBatchIndex(snapshot.activeBatchIndex);
   }, [clampRotationValue]);
@@ -779,24 +767,13 @@ export function useFilmLabState() {
     });
   }, []);
 
-  const clipRotatedFrame = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, angle: number) => {
-    const normalized = ((angle % 360) + 360) % 360;
-    ctx.translate(x + width / 2, y + height / 2);
-    ctx.rotate((normalized * Math.PI) / 180);
-    ctx.beginPath();
-    ctx.rect(-width / 2, -height / 2, width, height);
-    ctx.clip();
-  };
-
   const buildExportCanvas = useCallback(async (sourceCanvas: HTMLCanvasElement, editState: BatchImageEditState) => {
-    const thicknessPx = editState.frameColor === 'none' ? 0 : Math.round((editState.frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
     const baseCanvas = document.createElement('canvas');
-    baseCanvas.width = sourceCanvas.width + thicknessPx * 2;
-    baseCanvas.height = sourceCanvas.height + thicknessPx * 2;
+    baseCanvas.width = sourceCanvas.width;
+    baseCanvas.height = sourceCanvas.height;
     const baseCtx = baseCanvas.getContext('2d');
     if (!baseCtx) throw new Error('Failed to create canvas context');
 
-    const frameBackground = editState.frameColor === 'white' ? '#ffffff' : editState.frameColor === 'black' ? '#000000' : 'transparent';
     const overlayImgs = await Promise.all(editState.selectedOverlays.map((url) => loadImage(url)));
     const loadedOverlays = overlayImgs.filter(Boolean) as HTMLImageElement[];
 
@@ -808,107 +785,13 @@ export function useFilmLabState() {
         ctx.save();
         ctx.globalAlpha = editState.overlayOpacityByCategory[category];
         ctx.globalCompositeOperation = CANVAS_BLEND[editState.overlayBlendByCategory[category]] || 'source-over';
-
-        if (editState.selectedFrame) {
-          const { width: overlayWidth, height: overlayHeight } = getCanvasImageSourceDimensions(img);
-          const overlayAR = overlayWidth / overlayHeight;
-          const targetAR = targetWidth / targetHeight;
-          let overlaySrcX = 0;
-          let overlaySrcY = 0;
-          let overlaySrcW = overlayWidth;
-          let overlaySrcH = overlayHeight;
-
-          if (overlayAR > targetAR) {
-            overlaySrcW = overlayHeight * targetAR;
-            overlaySrcX = (overlayWidth - overlaySrcW) / 2;
-          } else {
-            overlaySrcH = overlayWidth / targetAR;
-            overlaySrcY = (overlayHeight - overlaySrcH) / 2;
-          }
-
-          ctx.drawImage(img, overlaySrcX, overlaySrcY, overlaySrcW, overlaySrcH, targetX, targetY, targetWidth, targetHeight);
-        } else {
-          drawImageCover(ctx, img, targetWidth, targetHeight);
-        }
-
+        drawImageCover(ctx, img, targetWidth, targetHeight);
         ctx.restore();
       });
     };
 
-    if (editState.selectedFrame) {
-      const frameImg = await loadImage(editState.selectedFrame);
-      const img = frameImg;
-      let drawWidth = baseCanvas.width;
-      let drawHeight = baseCanvas.height;
-      let frameX = 0;
-      let frameY = 0;
-
-      if (img) {
-        const imgWidth = img.naturalWidth;
-        const imgHeight = img.naturalHeight;
-        const imgAR = imgWidth / imgHeight;
-        const canvasAR = baseCanvas.width / baseCanvas.height;
-        if (imgAR > canvasAR) {
-          drawHeight = baseCanvas.width / imgAR;
-        } else {
-          drawWidth = baseCanvas.height * imgAR;
-        }
-        frameX = (baseCanvas.width - drawWidth) / 2;
-        frameY = (baseCanvas.height - drawHeight) / 2;
-      }
-
-      if (frameBackground !== 'transparent') {
-        baseCtx.fillStyle = frameBackground;
-        baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
-      } else {
-        baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
-      }
-
-      const { width: srcWidth, height: srcHeight } = getCanvasImageSourceDimensions(sourceCanvas);
-      const srcAR = srcWidth / srcHeight;
-      const targetAR = drawWidth / drawHeight;
-      let sx = 0;
-      let sy = 0;
-      let sw = srcWidth;
-      let sh = srcHeight;
-      if (srcAR > targetAR) {
-        sw = srcHeight * targetAR;
-        sx = (srcWidth - sw) / 2;
-      } else {
-        sh = srcWidth / targetAR;
-        sy = (srcHeight - sh) / 2;
-      }
-
-      if (img) {
-        baseCtx.save();
-        clipRotatedFrame(baseCtx, frameX, frameY, drawWidth, drawHeight, editState.frameRotation);
-      }
-
-      baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
-      drawOverlays(baseCtx, frameX, frameY, drawWidth, drawHeight);
-
-      if (img) {
-        baseCtx.restore();
-        baseCtx.save();
-        baseCtx.translate(frameX, frameY);
-        drawImageCoverRotated(baseCtx, img, drawWidth, drawHeight, editState.frameRotation);
-        baseCtx.restore();
-      }
-
-      const croppedCanvas = document.createElement('canvas');
-      croppedCanvas.width = drawWidth;
-      croppedCanvas.height = drawHeight;
-      croppedCanvas.getContext('2d')!.drawImage(baseCanvas, frameX, frameY, drawWidth, drawHeight, 0, 0, drawWidth, drawHeight);
-      return croppedCanvas;
-    }
-
-    if (frameBackground !== 'transparent') {
-      baseCtx.fillStyle = frameBackground;
-      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
-    }
-
-    baseCtx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
-    drawOverlays(baseCtx, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
+    baseCtx.drawImage(sourceCanvas, 0, 0);
+    drawOverlays(baseCtx, 0, 0, sourceCanvas.width, sourceCanvas.height);
     return baseCanvas;
   }, [loadImage]);
 
@@ -1339,170 +1222,18 @@ export function useFilmLabState() {
       sourceCanvas.height = processed.height;
       sourceCanvas.getContext('2d')!.putImageData(processed, 0, 0);
 
-      const thicknessPx = frameColor === 'none' ? 0 : Math.round((frameThickness / 100) * Math.max(sourceCanvas.width, sourceCanvas.height));
-      const baseCanvas = document.createElement('canvas');
-      baseCanvas.width = sourceCanvas.width + thicknessPx * 2;
-      baseCanvas.height = sourceCanvas.height + thicknessPx * 2;
-      const baseCtx = baseCanvas.getContext('2d');
-      if (!baseCtx) return;
+      const exportCanvas = await buildExportCanvas(sourceCanvas, getCurrentBatchEditState());
 
-      let exportCanvas: HTMLCanvasElement = baseCanvas;
-
-      if (selectedFrame && frameImgRef.current) {
-      const img = frameImgRef.current;
-      const imgWidth = img.naturalWidth;
-      const imgHeight = img.naturalHeight;
-      const imgAR = imgWidth / imgHeight;
-      const canvasAR = baseCanvas.width / baseCanvas.height;
-      let drawWidth = baseCanvas.width;
-      let drawHeight = baseCanvas.height;
-      if (imgAR > canvasAR) {
-        drawHeight = baseCanvas.width / imgAR;
-      } else {
-        drawWidth = baseCanvas.height * imgAR;
-      }
-      const frameX = (baseCanvas.width - drawWidth) / 2;
-      const frameY = (baseCanvas.height - drawHeight) / 2;
-
-      if (frameBackground !== 'transparent') {
-        baseCtx.fillStyle = frameBackground;
-        baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
-      } else {
-        baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
-      }
-
-      const { width: srcWidth, height: srcHeight } = getCanvasImageSourceDimensions(sourceCanvas);
-      const srcAR = srcWidth / srcHeight;
-      const targetAR = drawWidth / drawHeight;
-      let sx = 0;
-      let sy = 0;
-      let sw = srcWidth;
-      let sh = srcHeight;
-      if (srcAR > targetAR) {
-        sw = srcHeight * targetAR;
-        sx = (srcWidth - sw) / 2;
-      } else {
-        sh = srcWidth / targetAR;
-        sy = (srcHeight - sh) / 2;
-      }
-
-      baseCtx.save();
-      clipRotatedFrame(baseCtx, frameX, frameY, drawWidth, drawHeight, frameRotation);
-      baseCtx.drawImage(sourceCanvas, sx, sy, sw, sh, frameX, frameY, drawWidth, drawHeight);
-
-      if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
-        const overlayCategoryMap = new Map<string, OverlayCategory>();
-        (['lightleaks', 'bokeh', 'textures', 'paper'] as const).forEach((category) => {
-          OVERLAYS[category].urls.forEach((url) => overlayCategoryMap.set(url, category));
-        });
-
-        const overlayGroups: Record<OverlayCategory, number[]> = {
-          lightleaks: [],
-          bokeh: [],
-          textures: [],
-          paper: [],
-        };
-        selectedOverlays.forEach((url, index) => {
-          const category = overlayCategoryMap.get(url);
-          if (category) overlayGroups[category].push(index);
-        });
-
-        (['lightleaks', 'bokeh', 'textures', 'paper'] as const).forEach((category) => {
-          const blendMode = overlayBlendByCategory[category];
-          overlayGroups[category].forEach((overlayIndex) => {
-            const imgOverlay = overlayImgRef.current[overlayIndex];
-            if (!imgOverlay) return;
-            baseCtx.save();
-            baseCtx.globalAlpha = overlayOpacityByCategory[category];
-            baseCtx.globalCompositeOperation = CANVAS_BLEND[blendMode] || 'source-over';
-            const { width: overlayWidth, height: overlayHeight } = getCanvasImageSourceDimensions(imgOverlay);
-            const overlayAR = overlayWidth / overlayHeight;
-            let overlaySrcX = 0;
-            let overlaySrcY = 0;
-            let overlaySrcW = overlayWidth;
-            let overlaySrcH = overlayHeight;
-            if (overlayAR > targetAR) {
-              overlaySrcW = overlayHeight * targetAR;
-              overlaySrcX = (overlayWidth - overlaySrcW) / 2;
-            } else {
-              overlaySrcH = overlayWidth / targetAR;
-              overlaySrcY = (overlayHeight - overlaySrcH) / 2;
-            }
-            baseCtx.drawImage(imgOverlay, overlaySrcX, overlaySrcY, overlaySrcW, overlaySrcH, frameX, frameY, drawWidth, drawHeight);
-            baseCtx.restore();
-          });
-        });
-      }
-
-      baseCtx.restore();
-      baseCtx.save();
-      baseCtx.translate(frameX + drawWidth / 2, frameY + drawHeight / 2);
-      baseCtx.scale(frameScale, frameScale);
-      baseCtx.translate(-drawWidth / 2, -drawHeight / 2);
-      drawImageCoverRotated(baseCtx, img, drawWidth, drawHeight, frameRotation);
-      baseCtx.restore();
-      const croppedCanvas = document.createElement('canvas');
-      croppedCanvas.width = drawWidth;
-      croppedCanvas.height = drawHeight;
-      croppedCanvas.getContext('2d')!.drawImage(baseCanvas, frameX, frameY, drawWidth, drawHeight, 0, 0, drawWidth, drawHeight);
-      exportCanvas = croppedCanvas;
-    } else {
-      if (frameColor !== 'none') {
-        baseCtx.fillStyle = frameColor === 'white' ? '#ffffff' : '#000000';
-        baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
-      }
-
-      baseCtx.drawImage(sourceCanvas, thicknessPx, thicknessPx, sourceCanvas.width, sourceCanvas.height);
-
-      if (selectedOverlays.length > 0 && overlayImgRef.current.length > 0) {
-        const overlayCategoryMap = new Map<string, OverlayCategory>();
-        (['lightleaks', 'bokeh', 'textures', 'paper'] as const).forEach((category) => {
-          OVERLAYS[category].urls.forEach((url) => overlayCategoryMap.set(url, category));
-        });
-
-        const overlayGroups: Record<OverlayCategory, number[]> = {
-          lightleaks: [],
-          bokeh: [],
-          textures: [],
-          paper: [],
-        };
-        selectedOverlays.forEach((url, index) => {
-          const category = overlayCategoryMap.get(url);
-          if (category) overlayGroups[category].push(index);
-        });
-
-        (['lightleaks', 'bokeh', 'textures', 'paper'] as const).forEach((category) => {
-          const blendMode = overlayBlendByCategory[category];
-          overlayGroups[category].forEach((overlayIndex) => {
-            const img = overlayImgRef.current[overlayIndex];
-            if (!img) return;
-            baseCtx.save();
-            baseCtx.globalAlpha = overlayOpacityByCategory[category];
-            baseCtx.globalCompositeOperation = CANVAS_BLEND[blendMode] || 'source-over';
-            drawImageCover(baseCtx, img, baseCanvas.width, baseCanvas.height);
-            baseCtx.restore();
-          });
-        });
-      }
+      const link = document.createElement('a');
+      link.download = `${selectedPreset.brand}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
+      link.href = exportCanvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    } catch (error) {
+      console.error('Export failed', error);
+    } finally {
+      setProcessing(false);
     }
-
-    const dstCanvas = document.createElement('canvas');
-    dstCanvas.width = exportCanvas.width;
-    dstCanvas.height = exportCanvas.height;
-    const ctx = dstCanvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(exportCanvas, 0, 0);
-
-    const link = document.createElement('a');
-    link.download = `${selectedPreset.brand}-${selectedPreset.name.replace(/\s+/g, '-')}.jpg`;
-    link.href = dstCanvas.toDataURL('image/jpeg', 0.95);
-    link.click();
-  } catch (error) {
-    console.error('Export failed', error);
-  } finally {
-    setProcessing(false);
-  }
-  }, [selectedPreset, frameColor, frameThickness, selectedOverlays, overlayOpacityByCategory, overlayBlendByCategory, selectedFrame, rotation, currentParams, frameBackground, grainSeed, processImageInWorker, imageData]);
+  }, [selectedPreset, currentParams, grainSeed, processImageInWorker, imageData, buildExportCanvas, getCurrentBatchEditState]);
 
   const resetOverrides = useCallback(() => {
     setGrainAmount(null);
@@ -1538,13 +1269,29 @@ export function useFilmLabState() {
       lightleaks: 0.6,
       bokeh: 0.6,
       textures: 0.6,
+      frames: 1,
       paper: 0.8,
     });
     setOverlayBlendByCategory({
       lightleaks: 'screen',
       bokeh: 'screen',
       textures: 'screen',
+      frames: 'normal',
       paper: 'overlay',
+    });
+    setOverlayRotationByCategory({
+      lightleaks: 0,
+      bokeh: 0,
+      textures: 0,
+      frames: 0,
+      paper: 0,
+    });
+    setOverlayZoomByCategory({
+      lightleaks: 1,
+      bokeh: 1,
+      textures: 1,
+      frames: 1,
+      paper: 1,
     });
   }, [selectedPreset.curves]);
 
@@ -1740,9 +1487,6 @@ const curveOverridesExist = useMemo(() => {
     splitPos,
     draggingSplit,
     sidebarOpen,
-    frameColor,
-    frameThickness,
-    frameScale,
     grainSeed,
     loadingDemo,
     isAboutOpen,
@@ -1751,8 +1495,9 @@ const curveOverridesExist = useMemo(() => {
     overlayCategories,
     selectedOverlays,
     overlayOpacityByCategory,
+    overlayRotationByCategory,
+    overlayZoomByCategory,
     overlayBlendByCategory,
-    selectedFrame,
     rotation,
     grainAmount,
     grainSize,
@@ -1812,15 +1557,12 @@ const curveOverridesExist = useMemo(() => {
     setCropRatio,
     setFilterType,
     setShowFavoritesOnly,
-    setFrameColor,
-    setFrameThickness,
-    setFrameScale,
     setOverlayCategories,
     setSelectedOverlays,
     setOverlayOpacityByCategory,
+    setOverlayRotationByCategory,
+    setOverlayZoomByCategory,
     setOverlayBlendByCategory,
-    setSelectedFrame,
-    setFrameRotation,
     setGrainAmount,
     setGrainSize,
     setGrainRoughness,
@@ -1861,7 +1603,6 @@ const curveOverridesExist = useMemo(() => {
     setRotation,
     setLoadingDemo,
     setIsAboutOpen,
-    setFramingToolOpen,
     setGrainSeed,
     setImage,
     setImageData,
@@ -1874,10 +1615,6 @@ const curveOverridesExist = useMemo(() => {
     currentPreset,
     originalImageData,
     resetCrop,
-    frameBackground,
-    framePadding,
-    frameRotation,
-    frameAspectRatio,
     getCurrentBatchEditState,
     displayedPresets,
     filteredPresets,
@@ -1889,6 +1626,5 @@ const curveOverridesExist = useMemo(() => {
     levelsHistogram,
     handleSplitMove,
     setBatchImages,
-    framingToolOpen,
   };
 }

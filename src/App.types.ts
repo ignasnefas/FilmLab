@@ -1,20 +1,15 @@
 import type { FilmPreset } from './filmPresets';
 import type { BlendMode, OverlayCategory } from './App.helpers';
 
-export type FrameColor = 'none' | 'white' | 'black';
 export type CropRatio = 'original' | '1:1' | '4:3' | '16:9';
 export type CropDragType = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 export interface BatchImageEditState {
   selectedPreset: FilmPreset;
-  frameColor: FrameColor;
-  frameThickness: number;
   selectedOverlays: string[];
   overlayOpacityByCategory: Record<OverlayCategory, number>;
+  overlayRotationByCategory: Record<OverlayCategory, number>;
   overlayBlendByCategory: Record<OverlayCategory, BlendMode>;
-  selectedFrame: string | null;
-  frameRotation: number;
-  frameScale: number;
   rotation: number;
   grainAmount: number | null;
   grainSize: number | null;
@@ -84,14 +79,11 @@ export interface HistoryEntry {
   levelsGamma: number | null;
   levelsOutputBlack: number | null;
   levelsOutputWhite: number | null;
-  frameColor: FrameColor;
-  frameThickness: number;
   selectedOverlays: string[];
   overlayOpacityByCategory: Record<OverlayCategory, number>;
+  overlayRotationByCategory: Record<OverlayCategory, number>;
+  overlayZoomByCategory: Record<OverlayCategory, number>;
   overlayBlendByCategory: Record<OverlayCategory, BlendMode>;
-  selectedFrame: string | null;
-  frameRotation: number;
-  frameScale: number;
   rotation: number;
   activeBatchIndex: number | null;
 }

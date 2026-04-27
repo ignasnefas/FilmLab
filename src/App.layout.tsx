@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import type { FrameColor, CropRatio } from './App.types';
-import type { OverlayCategory } from './App.helpers';
-import FramingTool from './FramingTool';
 import logo from './favicon/logo.png';
 import SectionHeader from './components/SectionHeader';
 import SliderControl from './components/SliderControl';
@@ -20,13 +17,14 @@ import {
   DiceIcon,
   EyeIcon,
   ResetIcon,
+  RotateIcon,
+  ZoomIcon,
   LevelsIcon,
   ToneIcon,
   GrainIcon,
   EffectsIcon,
   OpticalIcon,
   OverlayIcon,
-  FrameIcon,
   WhiteBalanceIcon,
   ExposureIcon,
   ContrastIcon,
@@ -49,7 +47,6 @@ import {
   ZoomOutIcon,
   ZoomInIcon,
   OVERLAYS,
-  FRAME_URLS,
   BLEND_MODES,
 } from './App.helpers';
 
@@ -64,14 +61,12 @@ export default function AppLayout() {
     effects: false,
     opticalEffects: false,
     overlays: false,
-    frame: false,
     cropRotate: false,
     customPreset: false,
   });
   const [sidebarWidth, setSidebarWidth] = useState(310);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileSheetHeight, setMobileSheetHeight] = useState(55);
-  const [isResizing, setIsResizing] = useState(false);
   const [isTouchPinching, setIsTouchPinching] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(310);
@@ -105,7 +100,6 @@ export default function AppLayout() {
   }, []);
 
   const stopResize = useCallback(() => {
-    setIsResizing(false);
     window.removeEventListener('pointermove', onResizeMove);
     window.removeEventListener('pointerup', stopResize);
     window.removeEventListener('pointermove', onMobileResizeMove);
@@ -115,7 +109,6 @@ export default function AppLayout() {
   const handleResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (isMobile) return;
     event.preventDefault();
-    setIsResizing(true);
     startXRef.current = event.clientX;
     startWidthRef.current = sidebarWidth;
     window.addEventListener('pointermove', onResizeMove);
@@ -125,7 +118,6 @@ export default function AppLayout() {
   const handleMobileResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!isMobile) return;
     event.preventDefault();
-    setIsResizing(true);
     startYRef.current = event.clientY;
     startHeightRef.current = mobileSheetHeight;
     window.addEventListener('pointermove', onMobileResizeMove);
@@ -165,7 +157,6 @@ export default function AppLayout() {
     batchImages,
     activeBatchIndex,
     cropMode,
-    cropRatio,
     cropRect,
     draggingCrop,
     showFavoritesOnly,
@@ -176,8 +167,6 @@ export default function AppLayout() {
     showOriginal,
     splitView,
     splitPos,
-    frameColor,
-    frameThickness,
     exposure,
     loadingDemo,
     isAboutOpen,
@@ -187,11 +176,9 @@ export default function AppLayout() {
     overlayCategories,
     selectedOverlays,
     overlayOpacityByCategory,
+    overlayRotationByCategory,
+    overlayZoomByCategory,
     overlayBlendByCategory,
-    selectedFrame,
-    frameAspectRatio,
-    frameRotation,
-    frameScale,
     rotation,
     canvasRef,
     originalCanvasRef,
@@ -214,7 +201,6 @@ export default function AppLayout() {
     applyCrop,
     resetCrop,
     setRotation,
-    resetTransform,
     handleSaveCustomPreset,
     deleteCustomPreset,
     toggleFavorite,
@@ -225,18 +211,14 @@ export default function AppLayout() {
     setSplitView,
     setDraggingSplit,
     setCropMode,
-    setCropRatio,
     setFilterType,
     setShowFavoritesOnly,
-    setFrameColor,
-    setFrameThickness,
-    setFrameScale,
     setOverlayCategories,
     setSelectedOverlays,
     setOverlayOpacityByCategory,
     setOverlayBlendByCategory,
-    setSelectedFrame,
-    setFrameRotation,
+    setOverlayRotationByCategory,
+    setOverlayZoomByCategory,
     setGrainAmount,
     setGrainSize,
     setGrainRoughness,
@@ -276,13 +258,10 @@ export default function AppLayout() {
     setCurvePointsMaster,
     setCustomPresetName,
     setCustomPresetDescription,
-    setCropRect,
     setIsAboutOpen,
     setGrainSeed,
     setActiveBatchIndex,
     selectPreset,
-    frameBackground,
-    framePadding,
     displayedPresets,
     currentPresetIndex,
     hasOverrides,
@@ -317,84 +296,7 @@ export default function AppLayout() {
 
   const presetCategories = ['all', 'color-negative', 'bw-negative', 'slide', 'cinema', 'custom', 'favorites'] as const;
   const activeCategory = showFavoritesOnly ? 'favorites' : filterType;
-  const frameAspect = selectedFrame && frameAspectRatio
-    ? (frameRotation % 180 === 0 ? frameAspectRatio : 1 / frameAspectRatio)
-    : null;
   const bottomSheetHeight = sidebarOpen && isMobile ? `${mobileSheetHeight}vh` : '0px';
-  const imageMaxHeight = isMobile
-    ? `calc(100vh - 64px - ${bottomSheetHeight})`
-    : 'calc(100vh - 116px)';
-  const frameWrapperStyle = frameAspect
-    ? {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 'auto',
-        height: 'auto',
-        aspectRatio: frameAspect,
-        maxWidth: isMobile ? '80vw' : '100%',
-        maxHeight: imageMaxHeight,
-        minHeight: 0,
-        marginInline: 'auto',
-      }
-    : {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 'auto',
-        height: 'auto',
-        maxWidth: isMobile ? '80vw' : '100%',
-        maxHeight: imageMaxHeight,
-        minHeight: 0,
-        marginInline: 'auto',
-      };
-  const rotatedFrameClipPath = selectedFrame
-    ? (() => {
-        const scale = frameScale;
-        const normalized = ((frameRotation % 360) + 360) % 360;
-
-        if (normalized !== 0) {
-          const angle = (frameRotation * Math.PI) / 180;
-          const cos = Math.cos(angle);
-          const sin = Math.sin(angle);
-          const corners = [
-            { x: -0.5, y: -0.5 },
-            { x: 0.5, y: -0.5 },
-            { x: 0.5, y: 0.5 },
-            { x: -0.5, y: 0.5 },
-          ];
-          return `polygon(${corners.map(({ x, y }) => {
-            const rx = 50 + (x * cos - y * sin) * 100 * scale;
-            const ry = 50 + (x * sin + y * cos) * 100 * scale;
-            return `${rx}% ${ry}%`;
-          }).join(',')})`;
-        }
-
-        const inset = (1 - scale) * 50;
-        return `inset(${inset}% ${inset}% ${inset}% ${inset}%)`;
-      })()
-    : undefined;
-  const frameImageWrapperStyle = selectedFrame && frameRotation % 180 !== 0 && frameAspect
-    ? {
-        position: 'absolute' as const,
-        top: '50%',
-        left: '50%',
-        width: `${100 / frameAspect}%`,
-        height: `${100 * frameAspect}%`,
-        transform: `translate(-50%, -50%) rotate(${frameRotation}deg) scale(${frameScale})`,
-        transformOrigin: 'center center',
-      }
-    : {
-        position: 'absolute' as const,
-        inset: 0,
-        transform: `rotate(${frameRotation}deg) scale(${frameScale})`,
-        transformOrigin: 'center center',
-      };
-  const frameImageStyle = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const,
-  };
   const wrapperTransformStyle = (zoom !== 1 || offset.x !== 0 || offset.y !== 0)
     ? {
         transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
@@ -427,26 +329,9 @@ export default function AppLayout() {
     else setCurvePointsB(points);
   };
 
-  const overlayCategoryOptions = ['lightleaks', 'bokeh', 'textures', 'paper'] as const;
+  const overlayCategoryOptions = ['lightleaks', 'bokeh', 'textures', 'frames', 'paper'] as const;
   const overlayCategorySet = new Set(overlayCategories);
   const activeOverlayCategory = overlayCategories[0] ?? 'lightleaks';
-  const overlayUrlCategoryMap = useMemo(() => {
-    const map = new Map<string, OverlayCategory>();
-    overlayCategoryOptions.forEach((category) => {
-      OVERLAYS[category].urls.forEach((url) => map.set(url, category));
-    });
-    return map;
-  }, [overlayCategoryOptions]);
-
-  const getOverlayBlendMode = (url: string) => {
-    const category = overlayUrlCategoryMap.get(url) ?? activeOverlayCategory;
-    return overlayBlendByCategory[category];
-  };
-
-  const getOverlayOpacity = (url: string) => {
-    const category = overlayUrlCategoryMap.get(url) ?? activeOverlayCategory;
-    return overlayOpacityByCategory[category];
-  };
 
   const toggleOverlayCategory = (category: typeof overlayCategoryOptions[number]) => {
     setOverlayCategories([category]);
@@ -606,13 +491,6 @@ export default function AppLayout() {
                 </button>
               </>
             )}
-            <button
-              onClick={() => state.setFramingToolOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs bg-zinc-800/90 hover:bg-zinc-700 text-zinc-100 font-semibold flex items-center gap-1.5 transition-all border border-zinc-700 flex-shrink-0 whitespace-nowrap"
-            >
-              <FrameIcon />
-              <span className="hidden md:inline ml-1">Framer</span>
-            </button>
             {image && (
               <button
                 onClick={handleDownload}
@@ -993,129 +871,6 @@ export default function AppLayout() {
               </div>
               </div>
 
-              <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('frame')}
-                  className="flex items-center gap-3 w-full"
-                >
-                  <ChevronRightIcon className={`w-4 h-4 transition-transform ${openSections.frame ? 'rotate-90' : ''}`} />
-                  <SectionHeader title="Frames" icon={<FrameIcon />} />
-                </button>
-              </div>
-              <div className={`overflow-hidden transition-all duration-200 ease-out origin-top ${openSections.frame ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>
-                <div className="px-3 pb-3 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                  {['none', 'white', 'black'].map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setFrameColor(color as FrameColor)}
-                      className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wide transition ${
-                        frameColor === color
-                          ? 'bg-amber-500 text-black'
-                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-                {frameColor !== 'none' && (
-                  <SliderControl
-                    label="Frame Thickeness"
-                    value={frameThickness}
-                    min={0}
-                    max={20}
-                    step={1}
-                    defaultValue={8}
-                    onChange={(v) => setFrameThickness(v ?? 0)}
-                    format={(v) => `${Math.round(v)}%`}
-                  />
-                )}
-                {selectedFrame && (
-                  <div className="rounded-3xl border border-zinc-700/60 bg-zinc-950/60 p-4 mt-3">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Orientation</p>
-                        <h3 className="text-sm font-semibold text-white">Frame rotation</h3>
-                      </div>
-                      <span className="text-xs text-zinc-400">{frameRotation}°</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setFrameRotation((prev) => (prev + 270) % 360)}
-                        className="flex-1 rounded-full border border-zinc-700/80 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 transition"
-                      >
-                        ⟲
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFrameRotation((prev) => (prev + 90) % 360)}
-                        className="flex-1 rounded-full border border-zinc-700/80 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 transition"
-                      >
-                        ⟳
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFrameRotation(0)}
-                        className="flex-1 rounded-full border border-zinc-700/80 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 transition"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between gap-3 mb-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Scale</p>
-                          <h3 className="text-sm font-semibold text-white">Frame size</h3>
-                        </div>
-                        <span className="text-xs text-zinc-400">{Math.round(frameScale * 100)}%</span>
-                      </div>
-                      <SliderControl
-                        label="Frame size"
-                        value={frameScale}
-                        min={0.5}
-                        max={1.5}
-                        step={0.01}
-                        defaultValue={1}
-                        onChange={(v) => setFrameScale(v ?? 1)}
-                        format={(v) => `${Math.round(v * 100)}%`}
-                      />
-                    </div>
-                  </div>
-                )}
-                </div>
-
-                <div className="px-3 pb-3 border-t border-zinc-800/40">
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-2">Film Frames</div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    <button
-                      onClick={() => setSelectedFrame(null)}
-                      className={`aspect-[3/2] rounded text-[9px] font-bold flex items-center justify-center transition-all border ${
-                        !selectedFrame
-                          ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
-                          : 'bg-zinc-800/50 text-zinc-600 hover:text-zinc-300 border-zinc-700/50 hover:border-zinc-500'
-                      }`}
-                    >
-                      None
-                    </button>
-                    {FRAME_URLS.map((url, i) => (
-                      <button
-                        key={url}
-                        onClick={() => setSelectedFrame(url)}
-                        className={`aspect-[3/2] rounded overflow-hidden transition-all border ${
-                          selectedFrame === url
-                            ? 'border-amber-500 ring-1 ring-amber-500/40'
-                            : 'border-zinc-700/50 hover:border-zinc-500'
-                        }`}
-                      >
-                        <img src={url} className="w-full h-full object-cover opacity-80" alt={`Frame ${i + 1}`} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
               <div className="px-3 pt-3 pb-2 border-t border-zinc-800/40">
                 <button
@@ -1201,6 +956,30 @@ export default function AppLayout() {
                           [activeOverlayCategory]: v ?? OVERLAYS[activeOverlayCategory].defaultOpacity,
                         }))}
                         format={(v) => `${Math.round(v * 100)}%`}
+                      />
+                      <SliderControl
+                        label="Rotation"
+                        value={overlayRotationByCategory[activeOverlayCategory]}
+                        min={-180} max={180} step={1}
+                        defaultValue={0}
+                        onChange={(v) => setOverlayRotationByCategory((prev) => ({
+                          ...prev,
+                          [activeOverlayCategory]: v ?? 0,
+                        }))}
+                        format={(v) => `${Math.round(v)}°`}
+                        icon={<RotateIcon />}
+                      />
+                      <SliderControl
+                        label="Zoom"
+                        value={overlayZoomByCategory[activeOverlayCategory]}
+                        min={0.5} max={2} step={0.01}
+                        defaultValue={1}
+                        onChange={(v) => setOverlayZoomByCategory((prev) => ({
+                          ...prev,
+                          [activeOverlayCategory]: v ?? 1,
+                        }))}
+                        format={(v) => `${Math.round(v * 100)}%`}
+                        icon={<ZoomIcon />}
                       />
                       <div className="flex flex-wrap gap-1">
                         {BLEND_MODES.map((mode) => (
@@ -1395,19 +1174,17 @@ export default function AppLayout() {
               onTouchMove={(e) => handleSplitMove(e.touches[0].clientX)}
               onTouchEnd={() => setDraggingSplit(false)}
             >
-              <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle, backgroundColor: frameBackground }}>
-                <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible" style={{ padding: framePadding }}>
+              <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible" style={{ ...wrapperTransformStyle }}>
+                <div className="relative inline-block w-auto max-w-full max-h-full overflow-visible">
                   <canvas
                     ref={originalCanvasRef}
                     className="w-full h-full block"
                     style={{
-                      objectFit: isMobile ? 'contain' : selectedFrame ? 'cover' : 'contain',
+                      objectFit: isMobile ? 'contain' : 'contain',
                       maxWidth: '100%',
                       maxHeight: '100%',
                       width: '100%',
                       height: '100%',
-                      clipPath: rotatedFrameClipPath,
-                      WebkitClipPath: rotatedFrameClipPath,
                     }}
                   />
                   <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: `inset(0 0 0 ${splitPos}%)` }}>
@@ -1415,13 +1192,11 @@ export default function AppLayout() {
                       ref={canvasRef}
                       className="w-full h-full block"
                       style={{
-                        objectFit: isMobile ? 'contain' : selectedFrame ? 'cover' : 'contain',
+                        objectFit: isMobile ? 'contain' : 'contain',
                         maxWidth: '100%',
                         maxHeight: '100%',
                         width: '100%',
                         height: '100%',
-                        clipPath: rotatedFrameClipPath,
-                        WebkitClipPath: rotatedFrameClipPath,
                       }}
                     />
                   </div>
@@ -1448,13 +1223,6 @@ export default function AppLayout() {
                 </div>
                 <div className="absolute top-2 left-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">Original</div>
                 <div className="absolute top-2 right-2 bg-black/60 text-white/80 text-[10px] font-medium px-2 py-0.5 rounded-md backdrop-blur-sm">{selectedPreset.name}</div>
-                {selectedFrame && (
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div style={frameImageWrapperStyle}>
-                      <img src={selectedFrame} className="block pointer-events-none" style={frameImageStyle} alt="" />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ) : (
@@ -1463,22 +1231,20 @@ export default function AppLayout() {
               style={{ touchAction: 'none', overscrollBehavior: 'none' }}
             >
               <div className="relative flex items-center justify-center max-w-full" style={{ width: '100%', touchAction: 'none', overscrollBehavior: 'none' }}>
-                <div ref={imageWrapperRef} className="relative inline-block w-auto max-w-full overflow-visible" style={{ ...frameWrapperStyle, ...wrapperTransformStyle, backgroundColor: frameBackground, touchAction: 'none' }}>
-                  <div className="relative inline-block w-auto max-w-full overflow-visible" style={{ padding: framePadding }}>
+                <div ref={imageWrapperRef} className="relative inline-block w-auto max-w-full overflow-visible" style={{ ...wrapperTransformStyle, touchAction: 'none' }}>
+                  <div className="relative inline-block w-auto max-w-full overflow-visible">
                     <canvas
                       ref={canvasRef}
                       className="block shadow-2xl opacity-100"
                       style={{
                         imageRendering: 'auto',
-                        objectFit: isMobile ? 'contain' : selectedFrame ? 'cover' : 'contain',
+                        objectFit: 'contain',
                         width: '100%',
                         height: '100%',
                         maxWidth: '100%',
                         maxHeight: '100%',
                         display: 'block',
                         touchAction: 'none',
-                        clipPath: rotatedFrameClipPath,
-                        WebkitClipPath: rotatedFrameClipPath,
                       }}
                     />
                     {cropMode && cropRect && (
@@ -1528,13 +1294,6 @@ export default function AppLayout() {
                       </div>
                     )}
                   </div>
-                  {!showOriginal && selectedFrame && (
-                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                      <div style={frameImageWrapperStyle}>
-                        <img src={selectedFrame} className="block pointer-events-none" style={frameImageStyle} alt="" />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -1627,8 +1386,6 @@ export default function AppLayout() {
             </div>
           </div>
         )}
-
-        <FramingTool isOpen={state.framingToolOpen} onClose={() => state.setFramingToolOpen(false)} />
       </div>
     </div>
   );
