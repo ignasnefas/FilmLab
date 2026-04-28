@@ -25,6 +25,7 @@ import {
   EffectsIcon,
   OpticalIcon,
   OverlayIcon,
+  FrameIcon,
   WhiteBalanceIcon,
   ExposureIcon,
   ContrastIcon,
@@ -49,6 +50,7 @@ import {
   OVERLAYS,
   BLEND_MODES,
 } from './App.helpers';
+import FramingTool from './FramingTool';
 
 export default function AppLayout() {
   const state = useFilmLabState();
@@ -68,6 +70,7 @@ export default function AppLayout() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileSheetHeight, setMobileSheetHeight] = useState(55);
   const [isTouchPinching, setIsTouchPinching] = useState(false);
+  const [framingToolOpen, setFramingToolOpen] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(310);
   const startYRef = useRef(0);
@@ -370,6 +373,15 @@ export default function AppLayout() {
             className="flex items-center gap-3 overflow-x-auto max-w-full"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
+            <button
+              onClick={() => setFramingToolOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
+              title="Open framing tool"
+              aria-label="Open framing tool"
+            >
+              <FrameIcon />
+              <span className="hidden md:inline ml-1">Framer</span>
+            </button>
             <button
               onClick={() => setIsAboutOpen(true)}
               className="p-2 rounded-lg transition-all border flex-shrink-0 bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 border-zinc-700/50"
@@ -1091,6 +1103,8 @@ export default function AppLayout() {
               </div>
             </div>
         </aside>
+
+        <FramingTool isOpen={framingToolOpen} onClose={() => setFramingToolOpen(false)} />
 
         {sidebarOpen && (
           <div
