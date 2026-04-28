@@ -268,6 +268,24 @@ export default function FramingTool({ isOpen, onClose }: FramingToolProps) {
                             className="w-full"
                           />
                         </div>
+                        <div className="rounded-3xl border border-zinc-700/60 bg-zinc-950/60 p-4 space-y-3">
+                          <button
+                            type="button"
+                            onClick={() => handleDownload()}
+                            disabled={processing}
+                            className="w-full px-4 py-3 rounded-lg bg-amber-500 text-black font-semibold hover:bg-amber-400 transition-all disabled:opacity-50"
+                          >
+                            {processing ? 'Rendering…' : 'Download framed image'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleDownloadAll}
+                            disabled={processing || images.length === 0}
+                            className="w-full px-4 py-3 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-all disabled:opacity-50"
+                          >
+                            Download all
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -287,17 +305,25 @@ export default function FramingTool({ isOpen, onClose }: FramingToolProps) {
                           <button
                             type="button"
                             onClick={() => setSelectedIndex(index)}
-                            className="text-left flex-1"
+                            className="text-left flex-1 flex items-center gap-3"
                           >
-                            <p className="text-sm font-medium text-white">{image.file.name}</p>
-                            <p className="text-xs text-zinc-500">{image.width} x {image.height}</p>
+                            <div className="h-12 w-12 overflow-hidden rounded-lg bg-zinc-800 border border-zinc-700/60">
+                              <img src={image.url} alt={image.file.name} className="h-full w-full object-cover" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-white">{image.file.name}</p>
+                            </div>
                           </button>
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
-                            className="text-sm text-rose-400 hover:text-rose-300"
+                            aria-label={`Remove ${image.file.name}`}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-rose-400 transition hover:bg-rose-500/20 hover:text-rose-300"
                           >
-                            Remove
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
                           </button>
                         </div>
                       ))}
@@ -308,25 +334,6 @@ export default function FramingTool({ isOpen, onClose }: FramingToolProps) {
                       className="w-full mt-4 px-4 py-2 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-all"
                     >
                       Add more images
-                    </button>
-                  </div>
-
-                  <div className="rounded-3xl border border-zinc-700/60 bg-zinc-950/60 p-4 space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => handleDownload()}
-                      disabled={processing}
-                      className="w-full px-4 py-3 rounded-lg bg-amber-500 text-black font-semibold hover:bg-amber-400 transition-all disabled:opacity-50"
-                    >
-                      {processing ? 'Rendering…' : 'Download framed image'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadAll}
-                      disabled={processing || images.length === 0}
-                      className="w-full px-4 py-3 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-all disabled:opacity-50"
-                    >
-                      Download all
                     </button>
                   </div>
                 </div>
